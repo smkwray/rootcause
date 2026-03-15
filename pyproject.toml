@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "povcrime"
+version = "0.1.0"
+description = "Starter scaffold for a Codex-built causal poverty-crime project"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "beautifulsoup4>=4.12",
+  "duckdb>=1.1",
+  "doubleml>=0.8.0",
+  "dowhy>=0.11",
+  "econml>=0.16.0",
+  "linearmodels>=6.1",
+  "lxml>=5.2",
+  "matplotlib>=3.8",
+  "numpy>=1.26",
+  "openpyxl>=3.1",
+  "pandas>=2.2",
+  "pyarrow>=16.0",
+  "python-dotenv>=1.0",
+  "PyYAML>=6.0",
+  "requests>=2.32",
+  "scikit-learn>=1.5",
+  "statsmodels>=0.14",
+  "tqdm>=4.66"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.2",
+  "ruff>=0.6"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

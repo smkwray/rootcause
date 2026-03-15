@@ -1,0 +1,1580 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Rootcause &mdash; Economic Policy, Poverty, and Crime</title>
+  <meta name="description" content="A county-level empirical study examining the relationships between economic policy, poverty, and recorded crime across U.S. counties, 2000-2024.">
+  <style>
+/* ============================================================
+   Rootcause — Static Site Styles
+   ============================================================ */
+
+/* --- Color scheme & custom properties --- */
+:root {
+  color-scheme: light dark;
+
+  --bg-primary: #ffffff;
+  --bg-secondary: #f7f8fa;
+  --bg-card: #ffffff;
+  --bg-code: #f1f3f5;
+  --text-primary: #1a1a2e;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
+  --border-card: #e2e8f0;
+  --accent: #1a5276;
+  --accent-hover: #1f6d9e;
+  --pass: #059669;
+  --pass-bg: #ecfdf5;
+  --warn: #b45309;
+  --warn-bg: #fffbeb;
+  --fail: #dc2626;
+  --fail-bg: #fef2f2;
+  --na: #9ca3af;
+  --na-bg: #f3f4f6;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --radius: 8px;
+  --radius-sm: 4px;
+  --max-width: 960px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", Menlo, monospace;
+}
+
+[data-theme="dark"] {
+  --bg-primary: #0f1117;
+  --bg-secondary: #161822;
+  --bg-card: #1c1e2d;
+  --bg-code: #1e2030;
+  --text-primary: #e2e8f0;
+  --text-secondary: #a0aec0;
+  --text-muted: #718096;
+  --border: #2d3748;
+  --border-card: #2d3748;
+  --accent: #5b9bd5;
+  --accent-hover: #7fb8e8;
+  --pass: #34d399;
+  --pass-bg: #064e3b33;
+  --warn: #fbbf24;
+  --warn-bg: #78350f33;
+  --fail: #f87171;
+  --fail-bg: #7f1d1d33;
+  --na: #6b7280;
+  --na-bg: #1f293733;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.25), 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* --- Reset & base --- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.7;
+  transition: background 0.25s ease, color 0.25s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* --- Navigation / Header --- */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+.site-header nav {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.site-logo {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+
+.site-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  list-style: none;
+}
+
+.site-nav-links a {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.site-nav-links a:hover {
+  color: var(--accent);
+}
+
+#theme-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.375rem 0.5rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  line-height: 1;
+  transition: border-color 0.15s ease, color 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+#theme-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+#theme-toggle svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* --- Main content --- */
+main {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* --- Hero --- */
+.hero {
+  padding: 4rem 0 3rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.hero-eyebrow {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.hero h1 {
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+.hero-description {
+  font-size: 1.125rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  max-width: 680px;
+  margin-bottom: 1.75rem;
+}
+
+.hero-stats {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-stat-label {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* --- Sections --- */
+.section {
+  padding: 3rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.section:last-child {
+  border-bottom: none;
+}
+
+.section-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.section h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.015em;
+}
+
+.section-subtitle {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+  max-width: 640px;
+}
+
+/* --- Key findings cards --- */
+.findings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.finding-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease, background 0.25s ease;
+}
+
+.finding-card:hover {
+  box-shadow: var(--shadow);
+}
+
+.finding-number {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.finding-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.finding-text {
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* --- Lane cards --- */
+.lanes-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.lane-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+.lane-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.lane-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.lane-badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.badge-primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.badge-secondary {
+  background: var(--text-muted);
+  color: #fff;
+}
+
+.badge-exploratory {
+  background: var(--na);
+  color: #fff;
+}
+
+.badge-caution {
+  background: var(--warn-bg);
+  color: var(--warn);
+  border: 1px solid var(--warn);
+}
+
+/* --- Estimate rows --- */
+.estimates-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+}
+
+.estimates-table th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.5rem 0.75rem 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.estimates-table td {
+  padding: 0.625rem 0.75rem 0.625rem 0;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+  vertical-align: middle;
+}
+
+.estimates-table tr:last-child td {
+  border-bottom: none;
+}
+
+.est-method {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.est-value {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+.est-ci {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.p-sig {
+  color: var(--pass);
+  font-weight: 600;
+}
+
+.p-marginal {
+  color: var(--warn);
+}
+
+.p-nonsig {
+  color: var(--text-muted);
+}
+
+/* --- Credibility checks --- */
+.checks-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.check-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.625rem;
+  border-radius: 100px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.check-pill .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.check-pass {
+  background: var(--pass-bg);
+  color: var(--pass);
+  border-color: var(--pass);
+}
+
+.check-pass .dot {
+  background: var(--pass);
+}
+
+.check-warn {
+  background: var(--warn-bg);
+  color: var(--warn);
+  border-color: var(--warn);
+}
+
+.check-warn .dot {
+  background: var(--warn);
+}
+
+.check-fail {
+  background: var(--fail-bg);
+  color: var(--fail);
+  border-color: var(--fail);
+}
+
+.check-fail .dot {
+  background: var(--fail);
+}
+
+.check-na {
+  background: var(--na-bg);
+  color: var(--na);
+}
+
+.check-na .dot {
+  background: var(--na);
+}
+
+/* --- Lane summary text --- */
+.lane-summary {
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+/* --- Bidirectional table --- */
+.bidir-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  margin: 1rem 0;
+}
+
+.bidir-table th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  padding: 0.5rem 0.75rem 0.5rem 0;
+  border-bottom: 2px solid var(--border);
+}
+
+.bidir-table td {
+  padding: 0.625rem 0.75rem 0.625rem 0;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+
+.bidir-table .mono {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+/* --- Data sources table --- */
+.sources-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  margin: 1.5rem 0;
+}
+
+.sources-table th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  padding: 0.625rem 1rem 0.625rem 0;
+  border-bottom: 2px solid var(--border);
+}
+
+.sources-table td {
+  padding: 0.625rem 1rem 0.625rem 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.sources-table .source-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.sources-table .source-desc {
+  color: var(--text-secondary);
+}
+
+.coverage-bar-bg {
+  width: 60px;
+  height: 6px;
+  background: var(--bg-secondary);
+  border-radius: 3px;
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 0.5rem;
+}
+
+.coverage-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+}
+
+/* --- Methods / Credibility framework --- */
+.methods-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.methods-list li {
+  padding-left: 1.25rem;
+  position: relative;
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.methods-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.625rem;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.check-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.check-legend-item {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.check-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 0.4rem;
+}
+
+.check-legend-text strong {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.125rem;
+}
+
+.check-legend-text span {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* --- Caveats --- */
+.caveats-list {
+  list-style: none;
+  margin: 1.5rem 0;
+  padding: 1.25rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.caveats-list li {
+  padding: 0.5rem 0 0.5rem 1.5rem;
+  position: relative;
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.caveats-list li::before {
+  content: "\2022";
+  position: absolute;
+  left: 0.25rem;
+  color: var(--warn);
+  font-weight: 700;
+}
+
+/* --- Footer --- */
+.site-footer {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.footer-author {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.footer-links {
+  display: flex;
+  gap: 1.5rem;
+  list-style: none;
+}
+
+.footer-links a {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.footer-links a:hover {
+  color: var(--accent);
+}
+
+/* --- Loading state --- */
+.loading {
+  text-align: center;
+  padding: 4rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+}
+
+.loading-dot {
+  display: inline-block;
+  animation: pulse 1.2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* --- Responsive --- */
+@media (max-width: 640px) {
+  .hero {
+    padding: 2.5rem 0 2rem;
+  }
+
+  .hero h1 {
+    font-size: 1.625rem;
+  }
+
+  .hero-description {
+    font-size: 1rem;
+  }
+
+  .hero-stats {
+    gap: 1.25rem;
+  }
+
+  .hero-stat-value {
+    font-size: 1.25rem;
+  }
+
+  .section {
+    padding: 2rem 0;
+  }
+
+  .section h2 {
+    font-size: 1.25rem;
+  }
+
+  .findings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lane-header {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .estimates-table,
+  .bidir-table,
+  .sources-table {
+    font-size: 0.8125rem;
+  }
+
+  .estimates-table th,
+  .estimates-table td {
+    padding: 0.5rem 0.5rem 0.5rem 0;
+  }
+
+  .site-nav-links {
+    gap: 1rem;
+  }
+
+  .check-legend {
+    grid-template-columns: 1fr;
+  }
+
+  .site-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 420px) {
+  main {
+    padding: 0 1rem;
+  }
+
+  .site-header nav {
+    padding: 0.75rem 1rem;
+  }
+
+  .site-footer {
+    padding: 2rem 1rem 3rem;
+  }
+
+  .estimates-table .est-ci {
+    display: none;
+  }
+}
+
+  </style>
+</head>
+<body>
+<!-- Header -->
+  <header class="site-header">
+    <nav>
+      <a href="#" class="site-logo">Rootcause</a>
+      <ul class="site-nav-links">
+        <li><a href="#results">Results</a></li>
+        <li><a href="#methods">Methods</a></li>
+        <li><a href="#data-sources">Data</a></li>
+        <li>
+          <button id="theme-toggle" aria-label="Toggle dark mode">
+            <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          </button>
+        </li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-eyebrow">County-level empirical study</div>
+      <h1>Economic Policy, Poverty, and Crime in U.S. Counties</h1>
+      <p class="hero-description">
+        Does raising the minimum wage reduce crime? Does poverty cause crime&mdash;or does crime
+        deepen poverty? This project uses 25 years of county-level U.S. data and multiple causal
+        inference methods to test both directions: whether economic policy changes affect recorded
+        crime rates, and whether poverty and crime reinforce each other.
+      </p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <span class="hero-stat-value" id="stat-counties">&mdash;</span>
+          <span class="hero-stat-label">Counties</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-value" id="stat-years">&mdash;</span>
+          <span class="hero-stat-label">Years</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-value" id="stat-obs">&mdash;</span>
+          <span class="hero-stat-label">Observations</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-value">10</span>
+          <span class="hero-stat-label">Data Sources</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Key findings -->
+    <section class="section" id="findings">
+      <div class="section-label">Overview</div>
+      <h2>Key Findings</h2>
+      <p class="section-subtitle">
+        After applying multiple estimation strategies and a systematic credibility framework,
+        no policy lever examined in this study produces a clear, consistent causal effect on recorded crime.
+        The bidirectional poverty&ndash;crime analysis finds associations in both directions, but
+        placebo and overlap checks limit causal interpretation.
+      </p>
+      <div class="findings-grid">
+        <div class="finding-card">
+          <div class="finding-number">01</div>
+          <div class="finding-title">No Clear Consensus</div>
+          <div class="finding-text">
+            No single economic policy variable shows a consistent causal effect on crime
+            across all estimation methods. Every lane carries a "caution" verdict from the
+            credibility framework.
+          </div>
+        </div>
+        <div class="finding-card">
+          <div class="finding-number">02</div>
+          <div class="finding-title">Both Directions Tested</div>
+          <div class="finding-text">
+            The project tests poverty&nbsp;&rarr;&nbsp;crime and crime&nbsp;&rarr;&nbsp;poverty
+            on equal methodological footing. Associations appear in both directions, but
+            neither passes the full battery of credibility checks.
+          </div>
+        </div>
+        <div class="finding-card">
+          <div class="finding-number">03</div>
+          <div class="finding-title">Method Sensitivity</div>
+          <div class="finding-text">
+            Results shift meaningfully between conventional two-way fixed effects and
+            double/debiased machine learning, and between national samples and local
+            identification strategies.
+          </div>
+        </div>
+        <div class="finding-card">
+          <div class="finding-number">04</div>
+          <div class="finding-title">Identification Matters</div>
+          <div class="finding-text">
+            Tighter research designs&mdash;border-county comparisons, staggered-adoption
+            estimators, support trimming&mdash;tend to weaken or fail to confirm initial
+            broad-sample estimates.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results -->
+    <section class="section" id="results">
+      <div class="section-label">Results</div>
+      <h2>Policy Lanes</h2>
+      <p class="section-subtitle">
+        Each policy is tested against both violent and property crime rates.
+        Credibility checks are shown as colored indicators: green = pass, amber = warning, red = fail, gray = not available.
+        Hover over a check for details.
+      </p>
+
+      <div id="data-content">
+        <!-- Primary -->
+        <h3 style="margin-top:1.5rem;margin-bottom:0.25rem;font-size:1.125rem;">Minimum Wage</h3>
+        <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:1rem;">
+          Primary research lane. Tests whether state and federal minimum wage changes affect county-level recorded crime.
+        </p>
+        <div class="lanes-container" id="primary-lanes">
+          <p class="loading"><span class="loading-dot">Loading results...</span></p>
+        </div>
+
+        <!-- Secondary -->
+        <h3 style="margin-top:2.5rem;margin-bottom:0.25rem;font-size:1.125rem;">Earned Income Tax Credit</h3>
+        <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:1rem;">
+          Secondary lane. State EITC rate variation is used for identification. Results are method-sensitive.
+        </p>
+        <div class="lanes-container" id="secondary-lanes">
+          <p class="loading"><span class="loading-dot">Loading results...</span></p>
+        </div>
+
+        <!-- Exploratory -->
+        <h3 style="margin-top:2.5rem;margin-bottom:0.25rem;font-size:1.125rem;">Exploratory Lanes</h3>
+        <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:1rem;">
+          SNAP broad-based categorical eligibility and TANF benefit levels.
+          These lanes have weaker identification and are included for transparency, not causal claims.
+        </p>
+        <div class="lanes-container" id="exploratory-lanes">
+          <p class="loading"><span class="loading-dot">Loading results...</span></p>
+        </div>
+
+        <!-- Bidirectional -->
+        <h3 style="margin-top:2.5rem;margin-bottom:0.25rem;font-size:1.125rem;">Bidirectional: Poverty and Crime</h3>
+        <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:1rem;">
+          Does poverty cause crime, or does crime deepen poverty? This analysis tests both directions
+          on equal methodological footing: the same panel, the same estimators (county/year FE and DML),
+          and the same overlap diagnostics. Lagged treatment variables are used to separate cause from effect.
+          Associations appear in both directions, but placebo-lead concerns and high covariate imbalance
+          limit causal interpretation. These results are exploratory.
+        </p>
+        <div id="bidir-content">
+          <p class="loading"><span class="loading-dot">Loading...</span></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Credibility framework -->
+    <section class="section" id="credibility">
+      <div class="section-label">Credibility</div>
+      <h2>Diagnostic Framework</h2>
+      <p class="section-subtitle">
+        Every policy lane is evaluated against a battery of identification and robustness checks.
+        A lane must pass all checks to qualify as headline-eligible. Currently, no lane meets that bar.
+      </p>
+      <div class="check-legend">
+        <div class="check-legend-item">
+          <span class="check-legend-dot" style="background:var(--pass)"></span>
+          <div class="check-legend-text">
+            <strong>Event-Study Pre-trends</strong>
+            <span>Joint F-test on pre-treatment coefficients. A pass (p &gt; 0.05) supports parallel trends.</span>
+          </div>
+        </div>
+        <div class="check-legend-item">
+          <span class="check-legend-dot" style="background:var(--pass)"></span>
+          <div class="check-legend-text">
+            <strong>Covariate Overlap</strong>
+            <span>Standardized mean differences between treated and control tails. Max |SMD| &lt; 0.75 is a pass.</span>
+          </div>
+        </div>
+        <div class="check-legend-item">
+          <span class="check-legend-dot" style="background:var(--warn)"></span>
+          <div class="check-legend-text">
+            <strong>Support Trimming</strong>
+            <span>DML re-estimated on the subset with good propensity-score overlap. Warns if the estimate shifts materially.</span>
+          </div>
+        </div>
+        <div class="check-legend-item">
+          <span class="check-legend-dot" style="background:var(--warn)"></span>
+          <div class="check-legend-text">
+            <strong>Border-County Design</strong>
+            <span>Adjacent cross-state county pairs compared within border pairs. Tests whether local comparisons reproduce national estimates.</span>
+          </div>
+        </div>
+        <div class="check-legend-item">
+          <span class="check-legend-dot" style="background:var(--fail)"></span>
+          <div class="check-legend-text">
+            <strong>Negative-Control Outcomes</strong>
+            <span>Policy regressed on outcomes it should not affect (e.g., median age). Significant results suggest residual confounding.</span>
+          </div>
+        </div>
+        <div class="check-legend-item">
+          <span class="check-legend-dot" style="background:var(--na)"></span>
+          <div class="check-legend-text">
+            <strong>Staggered-Adoption ATT</strong>
+            <span>A stacked not-yet-treated event-study estimator. Avoids bias from heterogeneous treatment timing.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Methods -->
+    <section class="section" id="methods">
+      <div class="section-label">Methodology</div>
+      <h2>Methods</h2>
+      <p class="section-subtitle">
+        The analysis uses a county-year panel spanning 2000&ndash;2024. Multiple estimation strategies
+        are applied to each policy lane, with systematic robustness and falsification checks.
+      </p>
+      <ul class="methods-list">
+        <li>
+          <strong>Two-Way Fixed Effects (TWFE):</strong> County and year fixed effects absorb
+          time-invariant county characteristics and common year shocks. Event-study specifications
+          test for pre-treatment trends.
+        </li>
+        <li>
+          <strong>Double/Debiased Machine Learning (DML):</strong> Uses cross-fitted random forests
+          to partial out high-dimensional confounders (demographics, housing, employment, income)
+          before estimating the treatment effect.
+        </li>
+        <li>
+          <strong>Border-County Design:</strong> Restricts the sample to adjacent county pairs that
+          straddle a state border, comparing outcomes within pairs over time to control for local
+          unobserved factors.
+        </li>
+        <li>
+          <strong>Staggered-Adoption Estimator:</strong> A stacked approach using not-yet-treated
+          counties as controls, avoiding contamination from heterogeneous treatment timing that can
+          bias standard TWFE.
+        </li>
+        <li>
+          <strong>Robustness Checks:</strong> Each lane is re-estimated with alternative specifications
+          including population weighting, county-specific detrending, strict coverage filters,
+          placebo leads, and support-trimmed samples.
+        </li>
+        <li>
+          <strong>Falsification / Negative Controls:</strong> Policies are regressed on slow-moving
+          demographic outcomes they should not plausibly affect. Significant results flag potential
+          confounding.
+        </li>
+      </ul>
+    </section>
+
+    <!-- Data sources -->
+    <section class="section" id="data-sources">
+      <div class="section-label">Data</div>
+      <h2>Data Sources</h2>
+      <p class="section-subtitle">
+        All data comes from publicly available U.S. federal sources.
+        Coverage is measured as the share of county-year observations with non-null values.
+      </p>
+      <table class="sources-table">
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th>Variables</th>
+            <th>Coverage</th>
+          </tr>
+        </thead>
+        <tbody id="sources-table-body">
+          <tr><td colspan="3" class="loading"><span class="loading-dot">Loading...</span></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Caveats -->
+    <section class="section" id="caveats">
+      <div class="section-label">Limitations</div>
+      <h2>Caveats</h2>
+      <ul class="caveats-list">
+        <li>
+          Crime data reflects <em>recorded</em> crime from the FBI Uniform Crime Reporting program,
+          not actual crime. Reporting practices vary across agencies and over time.
+        </li>
+        <li>
+          County-level crime coverage is not universal. The FBI UCR county fallback used here
+          aggregates agency-level data, and some counties have incomplete reporting in some years.
+        </li>
+        <li>
+          No independent external benchmark for county-year crime rates is available in this project.
+          Coverage-sensitivity checks are used instead.
+        </li>
+        <li>
+          Results are sensitive to the choice of estimator. TWFE and DML can disagree on sign,
+          magnitude, and significance for the same policy lane.
+        </li>
+        <li>
+          This is an observational study. Even with fixed effects, machine learning, and border
+          designs, residual confounding cannot be ruled out. The negative-control tests reinforce
+          this concern.
+        </li>
+        <li>
+          ACS demographic controls are only available from 2005 onward, creating a coverage gap
+          in early panel years that may affect DML and overlap diagnostics.
+        </li>
+      </ul>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <span class="footer-author">By Shane Wray</span>
+    <ul class="footer-links">
+      <li><a href="https://github.com/smkwray/rootcause">Source Code</a></li>
+    </ul>
+  </footer>
+  <script>
+  var SITE_DATA = {"generated_date": "2026-03-15", "panel": {"rows": 78529, "counties": 3158, "year_min": 2000, "year_max": 2024, "years": 25, "violent_rows": 75709, "property_rows": 75709}, "sources": [{"id": "saipe", "label": "Census SAIPE", "description": "County poverty rates, median household income, population", "columns": ["poverty_rate", "median_hh_income", "population"], "coverage_pct": 100.0}, {"id": "laus", "label": "BLS Local Area Unemployment Statistics", "description": "County unemployment rates", "columns": ["unemployment_rate"], "coverage_pct": 99.7}, {"id": "bea", "label": "BEA Regional Economic Accounts", "description": "Per-capita personal income", "columns": ["per_capita_personal_income"], "coverage_pct": 98.3}, {"id": "acs", "label": "American Community Survey 5-Year Estimates", "description": "Race/ethnicity, age, education demographics", "columns": ["pct_white", "pct_black", "pct_hispanic", "pct_under_18", "pct_over_65", "pct_hs_or_higher", "median_age"], "coverage_pct": 64.0}, {"id": "census_cbp", "label": "Census County Business Patterns", "description": "Establishment counts, employment, payroll", "columns": ["cbp_establishments", "cbp_employment", "cbp_annual_payroll", "cbp_establishments_per_1k", "cbp_employment_per_capita", "cbp_payroll_per_employee"], "coverage_pct": 95.9}, {"id": "fhfa_hpi", "label": "FHFA House Price Index", "description": "County-level house price indices", "columns": ["fhfa_hpi", "fhfa_hpi_1990_base", "fhfa_hpi_2000_base", "fhfa_annual_change_pct", "log_fhfa_hpi_2000_base"], "coverage_pct": 86.5}, {"id": "hud_fmr", "label": "HUD Fair Market Rents", "description": "Fair market rent by bedroom count, rent-to-income ratio", "columns": ["fair_market_rent_0br", "fair_market_rent_1br", "fair_market_rent_2br", "fair_market_rent_3br", "fair_market_rent_4br", "log_fair_market_rent_2br", "rent_to_income_ratio_2br"], "coverage_pct": 99.5}, {"id": "ukcpr_welfare", "label": "UKCPR Welfare Rules Database", "description": "State EITC rates, TANF benefit levels", "columns": ["state_eitc_rate", "state_eitc_refundable", "tanf_benefit_2_person", "tanf_benefit_3_person", "tanf_benefit_4_person"], "coverage_pct": 96.0}, {"id": "fbi_crime", "label": "FBI Uniform Crime Reporting Program", "description": "Violent and property crime counts and rates", "columns": ["violent_crime_count", "property_crime_count", "violent_crime_rate", "property_crime_rate"], "coverage_pct": 96.4}, {"id": "policy", "label": "State Policy Variables", "description": "Effective minimum wage, SNAP broad-based categorical eligibility", "columns": ["effective_min_wage", "broad_based_cat_elig"], "coverage_pct": 100.0}], "lanes": [{"slug": "eitc_property", "title": "State EITC Rate -> Property Crime", "tier": "secondary", "tier_label": "Secondary", "twfe": {"coefficient": 102.9182, "std_error": 185.4503, "p_value": 0.5789, "ci_lower": -260.57, "ci_upper": 466.41}, "pretrend": {"p_value": 0.5733726826614776, "pass": true}, "dml": {"theta": 37.847, "se": 124.3869, "p_value": 0.7609, "ci_lower": -205.95, "ci_upper": 281.64}, "credibility": {"verdict": "caution", "frontend_status": "secondary_method_sensitive", "status_description": "Results shift between estimators", "headline_eligible": false, "checks": [{"name": "event_pretrend", "status": "pass", "detail": "p=0.5734"}, {"name": "overlap", "status": "warn", "detail": "max_abs_smd=0.737"}, {"name": "support_trim", "status": "warn", "detail": "base=37.8470, trimmed=109.7236"}, {"name": "border_design", "status": "warn", "detail": "baseline_p=0.7567, placebo_p=0.5041"}, {"name": "negative_control_outcomes", "status": "fail", "detail": "significant_negative_controls=1"}, {"name": "staggered_att", "status": "not_available", "detail": "No staggered row for this lane."}]}}, {"slug": "eitc_violent", "title": "State EITC Rate -> Violent Crime", "tier": "secondary", "tier_label": "Secondary", "twfe": {"coefficient": 17.5728, "std_error": 26.9096, "p_value": 0.5137, "ci_lower": -35.17, "ci_upper": 70.32}, "pretrend": {"p_value": 0.1923009886426683, "pass": true}, "dml": {"theta": 43.375, "se": 19.9759, "p_value": 0.0299, "ci_lower": 4.22, "ci_upper": 82.53}, "credibility": {"verdict": "caution", "frontend_status": "secondary_method_sensitive", "status_description": "Results shift between estimators", "headline_eligible": false, "checks": [{"name": "event_pretrend", "status": "pass", "detail": "p=0.1923"}, {"name": "overlap", "status": "warn", "detail": "max_abs_smd=0.737"}, {"name": "support_trim", "status": "warn", "detail": "base=43.3750, trimmed=23.4637"}, {"name": "border_design", "status": "warn", "detail": "baseline_p=0.3074, placebo_p=0.3201"}, {"name": "negative_control_outcomes", "status": "fail", "detail": "significant_negative_controls=1"}, {"name": "staggered_att", "status": "not_available", "detail": "No staggered row for this lane."}]}}, {"slug": "min_wage_property", "title": "Minimum Wage -> Property Crime", "tier": "primary", "tier_label": "Primary", "twfe": {"coefficient": 27.681, "std_error": 20.4379, "p_value": 0.1756, "ci_lower": -12.38, "ci_upper": 67.74}, "pretrend": {"p_value": null, "pass": true}, "dml": {"theta": -21.5137, "se": 12.4859, "p_value": 0.0849, "ci_lower": -45.99, "ci_upper": 2.96}, "credibility": {"verdict": "caution", "frontend_status": "primary_mixed_signal", "status_description": "Mixed signals across estimation methods", "headline_eligible": true, "checks": [{"name": "event_pretrend", "status": "warn", "detail": "p=n/a"}, {"name": "overlap", "status": "pass", "detail": "max_abs_smd=0.693"}, {"name": "support_trim", "status": "warn", "detail": "base=-21.5137, trimmed=-20.7760"}, {"name": "border_design", "status": "warn", "detail": "baseline_p=0.2943, placebo_p=0.7812"}, {"name": "negative_control_outcomes", "status": "fail", "detail": "significant_negative_controls=3"}, {"name": "staggered_att", "status": "warn", "detail": "interpretable=False, pretrend_pass=False"}, {"name": "min_wage_redesign", "status": "warn", "detail": "fd_p=0.1323, placebo_p=0.9126, neg_treat_p=0.2949, event_pretrend=True, coverage_sign_flip=False"}]}}, {"slug": "min_wage_violent", "title": "Minimum Wage -> Violent Crime", "tier": "primary", "tier_label": "Primary", "twfe": {"coefficient": 3.7757, "std_error": 4.2272, "p_value": 0.3718, "ci_lower": -4.51, "ci_upper": 12.06}, "pretrend": {"p_value": null, "pass": true}, "dml": {"theta": 4.3066, "se": 2.0143, "p_value": 0.0325, "ci_lower": 0.36, "ci_upper": 8.25}, "credibility": {"verdict": "caution", "frontend_status": "primary_mixed_signal", "status_description": "Mixed signals across estimation methods", "headline_eligible": true, "checks": [{"name": "event_pretrend", "status": "warn", "detail": "p=n/a"}, {"name": "overlap", "status": "pass", "detail": "max_abs_smd=0.693"}, {"name": "support_trim", "status": "pass", "detail": "base=4.3066, trimmed=10.2299"}, {"name": "border_design", "status": "warn", "detail": "baseline_p=0.4633, placebo_p=0.8235"}, {"name": "negative_control_outcomes", "status": "fail", "detail": "significant_negative_controls=3"}, {"name": "staggered_att", "status": "warn", "detail": "interpretable=False, pretrend_pass=False"}, {"name": "min_wage_redesign", "status": "warn", "detail": "fd_p=0.8929, placebo_p=0.1033, neg_treat_p=0.1015, event_pretrend=True, coverage_sign_flip=False"}]}}, {"slug": "snap_bbce_property", "title": "SNAP BBCE -> Property Crime", "tier": "exploratory", "tier_label": "Exploratory", "twfe": {"coefficient": 33.1915, "std_error": 90.7203, "p_value": 0.7145, "ci_lower": -144.63, "ci_upper": 211.01}, "pretrend": {"p_value": 0.0006523047814745997, "pass": false}, "credibility": {"verdict": "caution", "frontend_status": "exploratory_failed_pretrends", "status_description": "Event-study pre-trends fail", "headline_eligible": false, "checks": [{"name": "event_pretrend", "status": "fail", "detail": "p=0.0007"}, {"name": "overlap", "status": "not_available", "detail": "No overlap diagnostics."}, {"name": "support_trim", "status": "not_available", "detail": "No support-trim row for this lane."}, {"name": "border_design", "status": "not_available", "detail": "No border row for this lane."}, {"name": "negative_control_outcomes", "status": "not_available", "detail": "No negative-control outcome lane."}, {"name": "staggered_att", "status": "fail", "detail": "interpretable=True, pretrend_pass=False"}]}}, {"slug": "snap_bbce_violent", "title": "SNAP BBCE -> Violent Crime", "tier": "exploratory", "tier_label": "Exploratory", "twfe": {"coefficient": -2.778, "std_error": 9.4301, "p_value": 0.7683, "ci_lower": -21.26, "ci_upper": 15.71}, "pretrend": {"p_value": 3.305644101669891e-06, "pass": false}, "credibility": {"verdict": "caution", "frontend_status": "exploratory_failed_pretrends", "status_description": "Event-study pre-trends fail", "headline_eligible": false, "checks": [{"name": "event_pretrend", "status": "fail", "detail": "p=0.0000"}, {"name": "overlap", "status": "not_available", "detail": "No overlap diagnostics."}, {"name": "support_trim", "status": "not_available", "detail": "No support-trim row for this lane."}, {"name": "border_design", "status": "not_available", "detail": "No border row for this lane."}, {"name": "negative_control_outcomes", "status": "not_available", "detail": "No negative-control outcome lane."}, {"name": "staggered_att", "status": "pass", "detail": "interpretable=True, pretrend_pass=True"}]}}, {"slug": "tanf_property", "title": "TANF Benefit -> Property Crime", "tier": "exploratory", "tier_label": "Exploratory", "twfe": {"coefficient": 0.1953, "std_error": 0.3408, "p_value": 0.5667, "ci_lower": -0.47, "ci_upper": 0.86}, "dml": {"theta": -0.2746, "se": 0.1295, "p_value": 0.0339, "ci_lower": -0.53, "ci_upper": -0.02}, "credibility": {"verdict": "caution", "frontend_status": "exploratory_low_signal", "status_description": "Low statistical signal", "headline_eligible": false, "checks": [{"name": "event_pretrend", "status": "not_available", "detail": "No event-study pretrend test."}, {"name": "overlap", "status": "fail", "detail": "max_abs_smd=1.479"}, {"name": "support_trim", "status": "not_available", "detail": "No support-trim row for this lane."}, {"name": "border_design", "status": "not_available", "detail": "No border row for this lane."}, {"name": "negative_control_outcomes", "status": "not_available", "detail": "No negative-control outcome lane."}, {"name": "staggered_att", "status": "not_available", "detail": "No staggered row for this lane."}]}}, {"slug": "tanf_violent", "title": "TANF Benefit -> Violent Crime", "tier": "exploratory", "tier_label": "Exploratory", "twfe": {"coefficient": 0.0291, "std_error": 0.0738, "p_value": 0.6933, "ci_lower": -0.12, "ci_upper": 0.17}, "dml": {"theta": -0.0123, "se": 0.0179, "p_value": 0.4923, "ci_lower": -0.05, "ci_upper": 0.02}, "credibility": {"verdict": "caution", "frontend_status": "exploratory_low_signal", "status_description": "Low statistical signal", "headline_eligible": false, "checks": [{"name": "event_pretrend", "status": "not_available", "detail": "No event-study pretrend test."}, {"name": "overlap", "status": "fail", "detail": "max_abs_smd=1.479"}, {"name": "support_trim", "status": "not_available", "detail": "No support-trim row for this lane."}, {"name": "border_design", "status": "not_available", "detail": "No border row for this lane."}, {"name": "negative_control_outcomes", "status": "not_available", "detail": "No negative-control outcome lane."}, {"name": "staggered_att", "status": "not_available", "detail": "No staggered row for this lane."}]}}], "bidirectional": [{"label": "poverty_to_violent", "title": "Poverty -> Violent Crime", "treatment": "poverty_rate", "outcome": "violent_crime_rate", "headline": "lag1 FE does not clearly detect an association; DML is statistically strong; placebo lead is clean; longer lags are weak.", "fe_coefficient": -0.5727, "fe_p_value": 0.5127, "fe_ci_lower": -2.29, "fe_ci_upper": 1.14, "fe_n_obs": 27616, "dml_theta": 6.8411, "dml_p_value": 0.0, "dml_ci_lower": 5.34, "dml_ci_upper": 8.34, "overlap": {"max_abs_smd": 2.05, "oof_r2": 0.85, "residual_to_treatment_std": 0.38}, "placebo_lead": {"coefficient": -0.1107, "p_value": 0.8642}}, {"label": "poverty_to_property", "title": "Poverty -> Property Crime", "treatment": "poverty_rate", "outcome": "property_crime_rate", "headline": "lag1 FE detects an association; DML is statistically strong; placebo lead is concerning; longer lags are weak.", "fe_coefficient": 20.9617, "fe_p_value": 0.0131, "fe_ci_lower": 4.4, "fe_ci_upper": 37.52, "fe_n_obs": 27616, "dml_theta": 51.3435, "dml_p_value": 0.0, "dml_ci_lower": 38.5, "dml_ci_upper": 64.19, "overlap": {"max_abs_smd": 2.05, "oof_r2": 0.85, "residual_to_treatment_std": 0.38}, "placebo_lead": {"coefficient": 25.7216, "p_value": 0.0012}}, {"label": "violent_to_poverty", "title": "Violent Crime -> Poverty", "treatment": "violent_crime_rate", "outcome": "poverty_rate", "headline": "lag1 FE does not clearly detect an association; DML is statistically strong; placebo lead is clean; longer lags are weak.", "fe_coefficient": -0.0, "fe_p_value": 0.68, "fe_ci_lower": -0.0, "fe_ci_upper": 0.0, "fe_n_obs": 27616, "dml_theta": 0.0002, "dml_p_value": 0.0002, "dml_ci_lower": 0.0, "dml_ci_upper": 0.0, "overlap": {"max_abs_smd": 1.04, "oof_r2": 0.44, "residual_to_treatment_std": 0.75}, "placebo_lead": {"coefficient": -0.0, "p_value": 0.7465}}, {"label": "property_to_poverty", "title": "Property Crime -> Poverty", "treatment": "property_crime_rate", "outcome": "poverty_rate", "headline": "lag1 FE detects an association; DML is statistically strong; placebo lead is concerning; longer lags persist.", "fe_coefficient": 0.0001, "fe_p_value": 0.0034, "fe_ci_lower": 0.0, "fe_ci_upper": 0.0, "fe_n_obs": 27616, "dml_theta": 0.0, "dml_p_value": 0.0003, "dml_ci_lower": 0.0, "dml_ci_upper": 0.0, "overlap": {"max_abs_smd": 0.94, "oof_r2": 0.3, "residual_to_treatment_std": 0.84}, "placebo_lead": {"coefficient": 0.0001, "p_value": 0.0011}}]};
+  </script>
+  <script>
+/* ============================================================
+   Rootcause — Site Renderer
+   Fetches site_data.json and populates the page.
+   ============================================================ */
+
+(function () {
+  "use strict";
+
+  /* --- Theme toggle --- */
+  var toggle = document.getElementById("theme-toggle");
+  var html = document.documentElement;
+
+  function setTheme(theme) {
+    html.setAttribute("data-theme", theme);
+    try {
+      localStorage.setItem("rootcause-theme", theme);
+    } catch (_) {}
+    if (toggle) {
+      toggle.innerHTML =
+        theme === "dark"
+          ? '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>'
+          : '<svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>';
+    }
+  }
+
+  var saved;
+  try {
+    saved = localStorage.getItem("rootcause-theme");
+  } catch (_) {}
+  if (saved) {
+    setTheme(saved);
+  } else if (
+    window.matchMedia &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+  ) {
+    setTheme("dark");
+  } else {
+    setTheme("light");
+  }
+
+  if (toggle) {
+    toggle.addEventListener("click", function () {
+      var current = html.getAttribute("data-theme");
+      setTheme(current === "dark" ? "light" : "dark");
+    });
+  }
+
+  if (window.matchMedia) {
+    window
+      .matchMedia("(prefers-color-scheme: dark)")
+      .addEventListener("change", function (e) {
+        try {
+          if (!localStorage.getItem("rootcause-theme")) {
+            setTheme(e.matches ? "dark" : "light");
+          }
+        } catch (_) {
+          setTheme(e.matches ? "dark" : "light");
+        }
+      });
+  }
+
+  /* --- Lookup tables (must be assigned before render is called) --- */
+  var CHECK_NAMES = {
+    event_pretrend: "Pre-trends",
+    overlap: "Overlap",
+    support_trim: "Support trim",
+    border_design: "Border design",
+    negative_control_outcomes: "Neg. controls",
+    staggered_att: "Staggered ATT",
+    min_wage_redesign: "MW redesign",
+  };
+
+  var LANE_SUMMARIES = {
+    min_wage_property:
+      "TWFE and DML disagree on direction: the conventional fixed-effects estimate is positive but insignificant, while DML with richer controls is negative and marginal. Border-county first-difference designs do not confirm either direction. Negative-control outcomes show significant associations with slow-moving demographics, raising concern about residual confounding.",
+    min_wage_violent:
+      "Both TWFE and DML point positive, but the conventional estimate is far from significant. The DML result is marginally significant and survives support trimming. However, the staggered-adoption design is not interpretable in this sample, and negative-control outcome tests flag potential confounding.",
+    eitc_property:
+      "Pre-trends pass, but neither TWFE nor DML detects a statistically significant effect. The support-trimmed DML estimate shifts substantially, and one negative-control outcome flags. Results are method-sensitive and should not be treated as confirmatory.",
+    eitc_violent:
+      "Pre-trends pass and DML is marginally significant, but the TWFE estimate is weak. Support trimming attenuates the DML signal. Border-county designs show no significant effect. One negative-control outcome flags. This lane is suggestive but not robust.",
+    snap_bbce_property:
+      "Event-study pre-trends fail, indicating the parallel-trends assumption is unlikely to hold. The staggered-adoption pre-trend also fails. This lane is not suitable for causal claims in its current form.",
+    snap_bbce_violent:
+      "Event-study pre-trends fail. While the staggered-adoption pre-trend passes, the conventional event-study failure means this lane remains exploratory only.",
+    tanf_property:
+      "Covariate overlap is poor (max SMD exceeds 1.0), meaning treated and control groups differ substantially on observables. Neither TWFE nor DML detects a clear signal. This lane lacks the statistical support for causal interpretation.",
+    tanf_violent:
+      "Same overlap concerns as the property lane. No estimation method produces a clear signal. This lane should be treated as exploratory pending better identification.",
+  };
+
+  var BIDIR_UNITS = {
+    poverty_to_violent: "A 1 percentage-point increase in the poverty rate is associated with this change in the violent crime rate (per 100,000 residents).",
+    poverty_to_property: "A 1 percentage-point increase in the poverty rate is associated with this change in the property crime rate (per 100,000 residents).",
+    violent_to_poverty: "A 1-unit increase in the violent crime rate (per 100,000) is associated with this change in the poverty rate (percentage points). Coefficients are very small because the scales differ.",
+    property_to_poverty: "A 1-unit increase in the property crime rate (per 100,000) is associated with this change in the poverty rate (percentage points). Coefficients are very small because the scales differ.",
+  };
+
+  /* --- Data loading --- */
+  if (window.SITE_DATA) {
+    try {
+      render(window.SITE_DATA);
+    } catch (e) {
+      var errEl = document.getElementById("data-content");
+      if (errEl) errEl.innerHTML = '<p style="color:red;padding:2rem;">Render error: ' + e.message + '</p>';
+    }
+  }
+
+  /* --- Render --- */
+  function render(data) {
+    renderPanelStats(data.panel);
+    renderLanes(data.lanes);
+    renderBidirectional(data.bidirectional);
+    renderSources(data.sources);
+
+    var loaders = document.querySelectorAll(".loading");
+    for (var i = 0; i < loaders.length; i++) {
+      loaders[i].style.display = "none";
+    }
+  }
+
+  /* --- Panel stats (hero) --- */
+  function renderPanelStats(panel) {
+    setText("stat-counties", panel.counties.toLocaleString());
+    setText("stat-years", panel.year_min + "\u2013" + panel.year_max);
+    setText("stat-obs", panel.rows.toLocaleString());
+  }
+
+  /* --- Lane cards --- */
+  function renderLanes(lanes) {
+    var primary = [];
+    var secondary = [];
+    var exploratory = [];
+
+    lanes.forEach(function (lane) {
+      if (lane.tier === "primary") primary.push(lane);
+      else if (lane.tier === "secondary") secondary.push(lane);
+      else exploratory.push(lane);
+    });
+
+    renderLaneGroup("primary-lanes", primary);
+    renderLaneGroup("secondary-lanes", secondary);
+    renderLaneGroup("exploratory-lanes", exploratory);
+  }
+
+  function renderLaneGroup(containerId, lanes) {
+    var container = document.getElementById(containerId);
+    if (!container || lanes.length === 0) return;
+
+    var out = "";
+    lanes.forEach(function (lane) {
+      out += buildLaneCard(lane);
+    });
+    container.innerHTML = out;
+  }
+
+  function buildLaneCard(lane) {
+    var cred = lane.credibility || {};
+    var statusDesc = cred.status_description || "";
+    var checks = cred.checks || [];
+
+    var tierClass =
+      lane.tier === "primary"
+        ? "badge-primary"
+        : lane.tier === "secondary"
+          ? "badge-secondary"
+          : "badge-exploratory";
+
+    var h = '<div class="lane-card">';
+    h += '<div class="lane-header">';
+    h += '<div class="lane-title">' + esc(formatLaneTitle(lane.title)) + "</div>";
+    h += '<div class="lane-badges">';
+    h +=
+      '<span class="badge ' +
+      tierClass +
+      '">' +
+      esc(lane.tier_label) +
+      "</span>";
+    if (statusDesc) {
+      h += '<span class="badge badge-caution">' + esc(statusDesc) + "</span>";
+    }
+    h += "</div></div>";
+
+    h += '<table class="estimates-table">';
+    h += "<thead><tr>";
+    h += "<th>Method</th><th>Estimate</th><th>p-value</th><th>95% CI</th>";
+    h += "</tr></thead><tbody>";
+
+    if (lane.twfe) {
+      h += buildEstimateRow(
+        "TWFE",
+        lane.twfe.coefficient,
+        lane.twfe.p_value,
+        lane.twfe.ci_lower,
+        lane.twfe.ci_upper
+      );
+    }
+    if (lane.dml) {
+      h += buildEstimateRow(
+        "DML",
+        lane.dml.theta,
+        lane.dml.p_value,
+        lane.dml.ci_lower,
+        lane.dml.ci_upper
+      );
+    }
+    h += "</tbody></table>";
+
+    if (checks.length > 0) {
+      h += '<div class="checks-row">';
+      checks.forEach(function (c) {
+        h += buildCheckPill(c);
+      });
+      h += "</div>";
+    }
+
+    var summary = getLaneSummary(lane);
+    if (summary) {
+      h += '<div class="lane-summary">' + esc(summary) + "</div>";
+    }
+
+    h += "</div>";
+    return h;
+  }
+
+  function buildEstimateRow(method, value, pval, ciLow, ciHigh) {
+    var pClass =
+      pval < 0.05 ? "p-sig" : pval < 0.1 ? "p-marginal" : "p-nonsig";
+    var h = "<tr>";
+    h += '<td class="est-method">' + method + "</td>";
+    h += '<td class="est-value">' + formatNum(value) + "</td>";
+    h += '<td class="est-value ' + pClass + '">' + formatP(pval) + "</td>";
+    h +=
+      '<td class="est-ci">[' +
+      formatNum(ciLow) +
+      ", " +
+      formatNum(ciHigh) +
+      "]</td>";
+    h += "</tr>";
+    return h;
+  }
+
+  function buildCheckPill(check) {
+    var statusClass =
+      check.status === "pass"
+        ? "check-pass"
+        : check.status === "warn"
+          ? "check-warn"
+          : check.status === "fail"
+            ? "check-fail"
+            : "check-na";
+    return (
+      '<span class="check-pill ' +
+      statusClass +
+      '" title="' +
+      esc(check.detail) +
+      '"><span class="dot"></span>' +
+      esc(formatCheckName(check.name)) +
+      "</span>"
+    );
+  }
+
+  function formatCheckName(name) {
+    return CHECK_NAMES[name] || name.replace(/_/g, " ");
+  }
+
+  function formatLaneTitle(title) {
+    return title.replace("->", "\u2192");
+  }
+
+  function getLaneSummary(lane) {
+    return LANE_SUMMARIES[lane.slug] || "";
+  }
+
+  /* --- Bidirectional --- */
+  function renderBidirectional(bidir) {
+    var container = document.getElementById("bidir-content");
+    if (!container || !bidir || bidir.length === 0) return;
+
+    var povToCrime = [];
+    var crimeToPov = [];
+    bidir.forEach(function (row) {
+      if (row.label.indexOf("poverty_to_") === 0) povToCrime.push(row);
+      else crimeToPov.push(row);
+    });
+
+    var out = "";
+
+    out += '<h4 style="margin-bottom:0.75rem;font-size:1rem;">Poverty \u2192 Crime</h4>';
+    out += '<p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:0.75rem;">Does a rise in county poverty rates lead to higher recorded crime the following year? Treatment: lagged poverty rate (%). Outcome: crime rate per 100,000.</p>';
+    out += buildBidirCards(povToCrime);
+
+    out += '<h4 style="margin-top:2rem;margin-bottom:0.75rem;font-size:1rem;">Crime \u2192 Poverty</h4>';
+    out += '<p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:0.75rem;">Does a rise in recorded crime lead to higher poverty the following year? Treatment: lagged crime rate (per 100,000). Outcome: poverty rate (%). Coefficients are very small because the units differ by orders of magnitude.</p>';
+    out += buildBidirCards(crimeToPov);
+
+    container.innerHTML = out;
+  }
+
+  function buildBidirCards(rows) {
+    var out = "";
+    rows.forEach(function (row) {
+      out += '<div class="lane-card" style="margin-bottom:1.25rem;">';
+
+      // Header with title and exploratory badge
+      out += '<div class="lane-header">';
+      out += '<div class="lane-title">' + esc(formatLaneTitle(row.title)) + '</div>';
+      out += '<div class="lane-badges"><span class="badge badge-exploratory">Exploratory</span></div>';
+      out += '</div>';
+
+      // Unit explanation
+      var unitNote = BIDIR_UNITS[row.label] || "";
+      if (unitNote) {
+        out += '<p style="color:var(--text-muted);font-size:0.8125rem;margin-bottom:0.75rem;line-height:1.5;">' + esc(unitNote) + '</p>';
+      }
+
+      // Estimates table with CIs
+      out += '<table class="estimates-table"><thead><tr>';
+      out += '<th>Method</th><th>Estimate</th><th>p-value</th><th>95% CI</th>';
+      out += '</tr></thead><tbody>';
+
+      out += buildEstimateRow("FE", row.fe_coefficient, row.fe_p_value, row.fe_ci_lower, row.fe_ci_upper);
+      out += buildEstimateRow("DML", row.dml_theta, row.dml_p_value, row.dml_ci_lower, row.dml_ci_upper);
+
+      out += '</tbody></table>';
+
+      // Diagnostic checks (like policy lanes)
+      out += '<div class="checks-row">';
+
+      // Overlap check
+      if (row.overlap) {
+        var smd = row.overlap.max_abs_smd;
+        var ovlpStatus = smd < 0.75 ? "check-pass" : smd < 1.5 ? "check-warn" : "check-fail";
+        out += '<span class="check-pill ' + ovlpStatus + '" title="max |SMD| = ' + smd + '"><span class="dot"></span>Overlap: SMD ' + smd + '</span>';
+      }
+
+      // Placebo lead check
+      if (row.placebo_lead) {
+        var plP = row.placebo_lead.p_value;
+        var plStatus = plP > 0.05 ? "check-pass" : "check-fail";
+        var plLabel = plP > 0.05 ? "Placebo: clean" : "Placebo: significant";
+        out += '<span class="check-pill ' + plStatus + '" title="placebo lead p = ' + formatP(plP) + '"><span class="dot"></span>' + plLabel + ' (p=' + formatP(plP) + ')</span>';
+      }
+
+      out += '</div>';
+
+      // Summary
+      var summary = buildBidirSummary(row);
+      if (summary) {
+        out += '<div class="lane-summary">' + esc(summary) + '</div>';
+      }
+
+      out += '</div>';
+    });
+    return out;
+  }
+
+  function buildBidirSummary(row) {
+    var parts = [];
+    var feS = row.fe_p_value < 0.05;
+    var dmlS = row.dml_p_value < 0.05;
+
+    if (feS && dmlS) parts.push("Both FE and DML detect a statistically significant association.");
+    else if (dmlS) parts.push("FE does not detect a clear association, but DML is statistically significant.");
+    else if (feS) parts.push("FE detects an association, but DML does not confirm it.");
+    else parts.push("Neither FE nor DML detects a clear association.");
+
+    if (row.placebo_lead) {
+      if (row.placebo_lead.p_value < 0.05) {
+        parts.push("The placebo lead is also significant (p=" + formatP(row.placebo_lead.p_value) + "), raising concern that the association reflects shared trends rather than a causal lag.");
+      } else {
+        parts.push("The placebo lead is clean (p=" + formatP(row.placebo_lead.p_value) + "), supporting the lag structure.");
+      }
+    }
+
+    if (row.overlap) {
+      if (row.overlap.max_abs_smd > 1.5) {
+        parts.push("Covariate imbalance is high (max SMD = " + row.overlap.max_abs_smd + "), limiting causal confidence.");
+      } else if (row.overlap.max_abs_smd > 0.75) {
+        parts.push("Covariate imbalance is moderate (max SMD = " + row.overlap.max_abs_smd + ").");
+      }
+    }
+
+    return parts.join(" ");
+  }
+
+  /* --- Sources --- */
+  function renderSources(sources) {
+    var container = document.getElementById("sources-table-body");
+    if (!container || !sources) return;
+
+    var out = "";
+    sources.forEach(function (src) {
+      out += "<tr>";
+      out += '<td class="source-name">' + esc(src.label) + "</td>";
+      out += '<td class="source-desc">' + esc(src.description) + "</td>";
+      out += "<td>";
+      out +=
+        '<span class="coverage-bar-bg"><span class="coverage-bar-fill" style="width:' +
+        src.coverage_pct +
+        '%"></span></span>';
+      out += src.coverage_pct + "%";
+      out += "</td>";
+      out += "</tr>";
+    });
+    container.innerHTML = out;
+  }
+
+  /* --- Helpers --- */
+  function setText(id, text) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
+
+  function formatNum(n) {
+    if (n === null || n === undefined) return "\u2014";
+    if (Math.abs(n) < 0.001 && n !== 0) return n.toExponential(2);
+    if (Math.abs(n) >= 100) return n.toFixed(1);
+    if (Math.abs(n) >= 1) return n.toFixed(2);
+    return n.toFixed(4);
+  }
+
+  function formatP(p) {
+    if (p === null || p === undefined) return "\u2014";
+    if (p < 0.001) return "< 0.001";
+    if (p < 0.01) return p.toFixed(3);
+    return p.toFixed(2);
+  }
+
+  function esc(s) {
+    if (!s) return "";
+    var d = document.createElement("div");
+    d.appendChild(document.createTextNode(s));
+    return d.innerHTML;
+  }
+})();
+
+  </script>
+</body>
+</html>

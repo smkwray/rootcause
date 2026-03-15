@@ -1,0 +1,48 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+*.log
+.DS_Store
+
+# Virtual environments
+.venv/
+venv/
+
+# Tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.playwright-cli/
+
+# Data and outputs
+data/raw/*
+data/interim/*
+data/processed/*
+outputs/*
+
+# Keep directory placeholders
+!data/raw/.gitkeep
+!data/interim/.gitkeep
+!data/processed/.gitkeep
+!outputs/.gitkeep
+
+# Environment
+.env
+.env.local
+
+# Orchestration docs (do/ memory system)
+do/
+PLAN.md
+CODEX_BRIEF.md
+
+# Internal research / builder docs not needed for the public repo
+docs/data_dictionary_template.md
+docs/fbi_county_crime_fallback.md
+docs/research_design.md
+docs/treatment_definitions.md
+
+# Local app / editor files
+.vscode/

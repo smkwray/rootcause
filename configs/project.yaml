@@ -1,0 +1,17 @@
+# configs/project.yaml — Default project configuration
+
+study_name: "Causal Poverty-Crime Analysis"
+start_year: 2000
+end_year: 2024
+
+treatments:
+  - min_wage
+  - snap_policy
+
+outcomes:
+  - violent_crime_rate
+  - property_crime_rate
+
+panel:
+  unit: "county_fips x year"
+  cluster_var: state_fips
