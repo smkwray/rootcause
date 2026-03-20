@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from povcrime.analysis import get_analysis_lanes, get_event_definitions
 from povcrime.config import get_config
 from povcrime.models.baseline_fe import BaselineFE
 from povcrime.models.event_study import EventStudy
@@ -26,56 +27,6 @@ logging.basicConfig(
     format="%(asctime)s %(name)s %(levelname)s %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-# Treatment-outcome pairs to estimate.
-_ESTIMANDS = [
-    {
-        "treatment": "effective_min_wage",
-        "outcome": "violent_crime_rate",
-        "label": "min_wage_violent",
-        "event_col": "min_wage_event_year",
-    },
-    {
-        "treatment": "effective_min_wage",
-        "outcome": "property_crime_rate",
-        "label": "min_wage_property",
-        "event_col": "min_wage_event_year",
-    },
-    {
-        "treatment": "broad_based_cat_elig",
-        "outcome": "violent_crime_rate",
-        "label": "snap_bbce_violent",
-        "event_col": "snap_bbce_event_year",
-    },
-    {
-        "treatment": "broad_based_cat_elig",
-        "outcome": "property_crime_rate",
-        "label": "snap_bbce_property",
-        "event_col": "snap_bbce_event_year",
-    },
-    {
-        "treatment": "state_eitc_rate",
-        "outcome": "violent_crime_rate",
-        "label": "eitc_violent",
-        "event_col": "eitc_event_year",
-    },
-    {
-        "treatment": "state_eitc_rate",
-        "outcome": "property_crime_rate",
-        "label": "eitc_property",
-        "event_col": "eitc_event_year",
-    },
-    {
-        "treatment": "tanf_benefit_3_person",
-        "outcome": "violent_crime_rate",
-        "label": "tanf_violent",
-    },
-    {
-        "treatment": "tanf_benefit_3_person",
-        "outcome": "property_crime_rate",
-        "label": "tanf_property",
-    },
-]
 
 # Core control variables.
 _CONTROLS = [
@@ -149,29 +100,18 @@ def main(argv: list[str] | None = None) -> None:
         )
 
     # ---- Compute event timing if not already present ---------------- #
-    event_defs = [
-        {
-            "treatment_col": "effective_min_wage",
-            "output_col": "min_wage_event_year",
-            "change_threshold": 0.01,
-        },
-        {
-            "treatment_col": "broad_based_cat_elig",
-            "output_col": "snap_bbce_event_year",
-            "change_threshold": 0.5,
-        },
-        {
-            "treatment_col": "state_eitc_rate",
-            "output_col": "eitc_event_year",
-            "change_threshold": 0.01,
-        },
-    ]
+    event_defs = get_event_definitions(config=config, method="baseline")
     for event_def in event_defs:
         if (
-            event_def["treatment_col"] in panel.columns
-            and event_def["output_col"] not in panel.columns
+            event_def.treatment_col in panel.columns
+            and event_def.output_col not in panel.columns
         ):
-            panel = compute_first_treatment_event_year(panel, **event_def)
+            panel = compute_first_treatment_event_year(
+                panel,
+                treatment_col=event_def.treatment_col,
+                output_col=event_def.output_col,
+                change_threshold=event_def.change_threshold,
+            )
 
     # ---- Output directory ------------------------------------------- #
     output_dir = config.output_dir / "baseline"
@@ -180,11 +120,11 @@ def main(argv: list[str] | None = None) -> None:
     controls_avail = [c for c in _CONTROLS if c in panel.columns]
 
     # ---- TWFE estimation -------------------------------------------- #
-    for spec in _ESTIMANDS:
-        treatment = spec["treatment"]
-        outcome = spec["outcome"]
-        label = spec["label"]
-        event_col = spec.get("event_col")
+    for lane in get_analysis_lanes(config=config, method="baseline"):
+        treatment = lane.treatment
+        outcome = lane.outcome
+        label = lane.slug
+        event_col = lane.event_col
 
         if treatment not in panel.columns or outcome not in panel.columns:
             logger.warning(

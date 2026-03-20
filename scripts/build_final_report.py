@@ -44,6 +44,7 @@ def main(argv: list[str] | None = None) -> None:
         output_dir=config.output_dir / "report",
         overlap_dir=config.output_dir / "overlap",
         app_dir=config.output_dir / "app",
+        config=config,
     )
     logger.info("Final report written to %s", out_path)
 

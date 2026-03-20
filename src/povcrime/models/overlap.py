@@ -10,7 +10,9 @@ import pandas as pd
 from sklearn.base import clone
 from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.metrics import r2_score
-from sklearn.model_selection import KFold
+from sklearn.model_selection import GroupKFold, KFold
+
+from povcrime.models.panel_ml import PanelMode, prepare_panel_ml_sample, validate_panel_mode
 
 
 def build_continuous_treatment_support_diagnostics(
@@ -20,14 +22,27 @@ def build_continuous_treatment_support_diagnostics(
     controls: list[str],
     output_dir: str | Path,
     n_splits: int = 5,
+    group_col: str | None = None,
+    panel_mode: PanelMode = "none",
+    entity_col: str = "county_fips",
+    time_col: str = "year",
 ) -> dict[str, float | int | str]:
     """Build lightweight overlap/support diagnostics for a continuous treatment."""
-    required = [treatment, *controls]
-    missing = [col for col in required if col not in df.columns]
-    if missing:
-        raise ValueError(f"Missing columns for overlap diagnostics: {missing}")
+    normalized_mode = validate_panel_mode(panel_mode)
+    keep_cols: list[str] = []
+    if group_col is not None:
+        keep_cols.append(group_col)
+    if normalized_mode != "none":
+        keep_cols.extend([entity_col, time_col])
 
-    sample = df[required].dropna().reset_index(drop=True)
+    sample = prepare_panel_ml_sample(
+        df,
+        model_cols=[treatment, *controls],
+        keep_cols=keep_cols,
+        panel_mode=normalized_mode,
+        entity_col=entity_col,
+        time_col=time_col,
+    )
     if len(sample) < max(50, n_splits * 10):
         raise ValueError(
             f"Only {len(sample)} complete observations available for diagnostics."
@@ -36,7 +51,12 @@ def build_continuous_treatment_support_diagnostics(
     X = sample[controls]
     y = pd.to_numeric(sample[treatment], errors="coerce")
 
-    oof_pred = compute_out_of_fold_predictions(X, y, n_splits=n_splits)
+    oof_pred = compute_out_of_fold_predictions(
+        sample[[*controls, group_col]] if group_col is not None else X,
+        y,
+        n_splits=n_splits,
+        group_col=group_col,
+    )
     residual = y - oof_pred
 
     balance = _control_balance_by_treatment_tails(sample, treatment=treatment, controls=controls)
@@ -64,6 +84,7 @@ def build_continuous_treatment_support_diagnostics(
         "max_abs_smd": float(balance["abs_smd"].max()) if not balance.empty else float("nan"),
         "n_controls_abs_smd_gt_0_10": int((balance["abs_smd"] > 0.10).sum()) if not balance.empty else 0,
         "n_controls_abs_smd_gt_0_25": int((balance["abs_smd"] > 0.25).sum()) if not balance.empty else 0,
+        "panel_mode": normalized_mode,
     }
 
     output_dir = Path(output_dir)
@@ -82,6 +103,7 @@ def compute_out_of_fold_predictions(
     y: pd.Series,
     *,
     n_splits: int,
+    group_col: str | None = None,
 ) -> np.ndarray:
     model = HistGradientBoostingRegressor(
         max_iter=150,
@@ -91,11 +113,31 @@ def compute_out_of_fold_predictions(
         early_stopping=True,
         random_state=42,
     )
-    splitter = KFold(n_splits=n_splits, shuffle=True, random_state=42)
+    X = X.reset_index(drop=True)
+    y = pd.Series(y).reset_index(drop=True)
+    feature_cols = [col for col in X.columns if col != group_col]
+    if not feature_cols:
+        raise ValueError("At least one feature column is required for OOF predictions.")
+
+    if group_col is None:
+        splitter = KFold(n_splits=n_splits, shuffle=True, random_state=42)
+        split_iter = splitter.split(X[feature_cols])
+    else:
+        if group_col not in X.columns:
+            raise ValueError(f"Missing grouping column for OOF predictions: {group_col}")
+        groups = X[group_col]
+        if int(groups.nunique(dropna=False)) < n_splits:
+            raise ValueError(
+                f"Only {int(groups.nunique(dropna=False))} unique groups available in {group_col}, "
+                f"need at least {n_splits} for grouped OOF predictions."
+            )
+        splitter = GroupKFold(n_splits=n_splits)
+        split_iter = splitter.split(X[feature_cols], y, groups=groups)
+
     preds = np.empty(len(y), dtype=float)
-    for train_idx, test_idx in splitter.split(X):
-        fitted = clone(model).fit(X.iloc[train_idx], y.iloc[train_idx])
-        preds[test_idx] = fitted.predict(X.iloc[test_idx])
+    for train_idx, test_idx in split_iter:
+        fitted = clone(model).fit(X.iloc[train_idx][feature_cols], y.iloc[train_idx])
+        preds[test_idx] = fitted.predict(X.iloc[test_idx][feature_cols])
     return preds
 
 

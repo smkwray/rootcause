@@ -964,8 +964,9 @@ main {
         <h3 style="margin-top:2.5rem;margin-bottom:0.25rem;font-size:1.125rem;">Bidirectional: Poverty and Crime</h3>
         <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:1rem;">
           Does poverty cause crime, or does crime deepen poverty? This analysis tests both directions
-          on equal methodological footing: the same panel, the same estimators (county/year FE and DML),
-          and the same overlap diagnostics. Lagged treatment variables are used to separate cause from effect.
+          on equal methodological footing: the same panel, the same estimators, county-grouped cross-fitting,
+          two-way within residualization for ML steps, and the same overlap diagnostics. Lagged treatment
+          variables are used to separate cause from effect.
           Associations appear in both directions, but placebo-lead concerns and high covariate imbalance
           limit causal interpretation. These results are exploratory.
         </p>
@@ -1044,9 +1045,10 @@ main {
           test for pre-treatment trends.
         </li>
         <li>
-          <strong>Double/Debiased Machine Learning (DML):</strong> Uses cross-fitted random forests
-          to partial out high-dimensional confounders (demographics, housing, employment, income)
-          before estimating the treatment effect.
+          <strong>Double/Debiased Machine Learning (DML):</strong> Uses cross-fitted histogram gradient
+          boosting nuisance models to partial out high-dimensional confounders (demographics, housing,
+          employment, income) before estimating the treatment effect. County-year analyses use county-grouped
+          sample splitting and a two-way within transform over county and year before nuisance fitting.
         </li>
         <li>
           <strong>Border-County Design:</strong> Restricts the sample to adjacent county pairs that
@@ -1134,9 +1136,6 @@ main {
       <li><a href="https://github.com/smkwray/rootcause">Source Code</a></li>
     </ul>
   </footer>
-  <script>
-  var SITE_DATA = {"generated_date": "2026-03-15", "panel": {"rows": 78529, "counties": 3158, "year_min": 2000, "year_max": 2024, "years": 25, "violent_rows": 75709, "property_rows": 75709}, "sources": [{"id": "saipe", "label": "Census SAIPE", "description": "County poverty rates, median household income, population", "columns": ["poverty_rate", "median_hh_income", "population"], "coverage_pct": 100.0}, {"id": "laus", "label": "BLS Local Area Unemployment Statistics", "description": "County unemployment rates", "columns": ["unemployment_rate"], "coverage_pct": 99.7}, {"id": "bea", "label": "BEA Regional Economic Accounts", "description": "Per-capita personal income", "columns": ["per_capita_personal_income"], "coverage_pct": 98.3}, {"id": "acs", "label": "American Community Survey 5-Year Estimates", "description": "Race/ethnicity, age, education demographics", "columns": ["pct_white", "pct_black", "pct_hispanic", "pct_under_18", "pct_over_65", "pct_hs_or_higher", "median_age"], "coverage_pct": 64.0}, {"id": "census_cbp", "label": "Census County Business Patterns", "description": "Establishment counts, employment, payroll", "columns": ["cbp_establishments", "cbp_employment", "cbp_annual_payroll", "cbp_establishments_per_1k", "cbp_employment_per_capita", "cbp_payroll_per_employee"], "coverage_pct": 95.9}, {"id": "fhfa_hpi", "label": "FHFA House Price Index", "description": "County-level house price indices", "columns": ["fhfa_hpi", "fhfa_hpi_1990_base", "fhfa_hpi_2000_base", "fhfa_annual_change_pct", "log_fhfa_hpi_2000_base"], "coverage_pct": 86.5}, {"id": "hud_fmr", "label": "HUD Fair Market Rents", "description": "Fair market rent by bedroom count, rent-to-income ratio", "columns": ["fair_market_rent_0br", "fair_market_rent_1br", "fair_market_rent_2br", "fair_market_rent_3br", "fair_market_rent_4br", "log_fair_market_rent_2br", "rent_to_income_ratio_2br"], "coverage_pct": 99.5}, {"id": "ukcpr_welfare", "label": "UKCPR Welfare Rules Database", "description": "State EITC rates, TANF benefit levels", "columns": ["state_eitc_rate", "state_eitc_refundable", "tanf_benefit_2_person", "tanf_benefit_3_person", "tanf_benefit_4_person"], "coverage_pct": 96.0}, {"id": "fbi_crime", "label": "FBI Uniform Crime Reporting Program", "description": "Violent and property crime counts and rates", "columns": ["violent_crime_count", "property_crime_count", "violent_crime_rate", "property_crime_rate"], "coverage_pct": 96.4}, {"id": "policy", "label": "State Policy Variables", "description": "Effective minimum wage, SNAP broad-based categorical eligibility", "columns": ["effective_min_wage", "broad_based_cat_elig"], "coverage_pct": 100.0}], "lanes": [{"slug": "eitc_property", "title": "State EITC Rate -> Property Crime", "tier": "secondary", "tier_label": "Secondary", "twfe": {"coefficient": 102.9182, "std_error": 185.4503, "p_value": 0.5789, "ci_lower": -260.57, "ci_upper": 466.41}, "pretrend": {"p_value": 0.5733726826614776, "pass": true}, "dml": {"theta": 37.847, "se": 124.3869, "p_value": 0.7609, "ci_lower": -205.95, "ci_upper": 281.64}, "credibility": {"verdict": "caution", "frontend_status": "secondary_method_sensitive", "status_description": "Results shift between estimators", "headline_eligible": false, "checks": [{"name": "event_pretrend", "status": "pass", "detail": "p=0.5734"}, {"name": "overlap", "status": "warn", "detail": "max_abs_smd=0.737"}, {"name": "support_trim", "status": "warn", "detail": "base=37.8470, trimmed=109.7236"}, {"name": "border_design", "status": "warn", "detail": "baseline_p=0.7567, placebo_p=0.5041"}, {"name": "negative_control_outcomes", "status": "fail", "detail": "significant_negative_controls=1"}, {"name": "staggered_att", "status": "not_available", "detail": "No staggered row for this lane."}]}}, {"slug": "eitc_violent", "title": "State EITC Rate -> Violent Crime", "tier": "secondary", "tier_label": "Secondary", "twfe": {"coefficient": 17.5728, "std_error": 26.9096, "p_value": 0.5137, "ci_lower": -35.17, "ci_upper": 70.32}, "pretrend": {"p_value": 0.1923009886426683, "pass": true}, "dml": {"theta": 43.375, "se": 19.9759, "p_value": 0.0299, "ci_lower": 4.22, "ci_upper": 82.53}, "credibility": {"verdict": "caution", "frontend_status": "secondary_method_sensitive", "status_description": "Results shift between estimators", "headline_eligible": false, "checks": [{"name": "event_pretrend", "status": "pass", "detail": "p=0.1923"}, {"name": "overlap", "status": "warn", "detail": "max_abs_smd=0.737"}, {"name": "support_trim", "status": "warn", "detail": "base=43.3750, trimmed=23.4637"}, {"name": "border_design", "status": "warn", "detail": "baseline_p=0.3074, placebo_p=0.3201"}, {"name": "negative_control_outcomes", "status": "fail", "detail": "significant_negative_controls=1"}, {"name": "staggered_att", "status": "not_available", "detail": "No staggered row for this lane."}]}}, {"slug": "min_wage_property", "title": "Minimum Wage -> Property Crime", "tier": "primary", "tier_label": "Primary", "twfe": {"coefficient": 27.681, "std_error": 20.4379, "p_value": 0.1756, "ci_lower": -12.38, "ci_upper": 67.74}, "pretrend": {"p_value": null, "pass": true}, "dml": {"theta": -21.5137, "se": 12.4859, "p_value": 0.0849, "ci_lower": -45.99, "ci_upper": 2.96}, "credibility": {"verdict": "caution", "frontend_status": "primary_mixed_signal", "status_description": "Mixed signals across estimation methods", "headline_eligible": true, "checks": [{"name": "event_pretrend", "status": "warn", "detail": "p=n/a"}, {"name": "overlap", "status": "pass", "detail": "max_abs_smd=0.693"}, {"name": "support_trim", "status": "warn", "detail": "base=-21.5137, trimmed=-20.7760"}, {"name": "border_design", "status": "warn", "detail": "baseline_p=0.2943, placebo_p=0.7812"}, {"name": "negative_control_outcomes", "status": "fail", "detail": "significant_negative_controls=3"}, {"name": "staggered_att", "status": "warn", "detail": "interpretable=False, pretrend_pass=False"}, {"name": "min_wage_redesign", "status": "warn", "detail": "fd_p=0.1323, placebo_p=0.9126, neg_treat_p=0.2949, event_pretrend=True, coverage_sign_flip=False"}]}}, {"slug": "min_wage_violent", "title": "Minimum Wage -> Violent Crime", "tier": "primary", "tier_label": "Primary", "twfe": {"coefficient": 3.7757, "std_error": 4.2272, "p_value": 0.3718, "ci_lower": -4.51, "ci_upper": 12.06}, "pretrend": {"p_value": null, "pass": true}, "dml": {"theta": 4.3066, "se": 2.0143, "p_value": 0.0325, "ci_lower": 0.36, "ci_upper": 8.25}, "credibility": {"verdict": "caution", "frontend_status": "primary_mixed_signal", "status_description": "Mixed signals across estimation methods", "headline_eligible": true, "checks": [{"name": "event_pretrend", "status": "warn", "detail": "p=n/a"}, {"name": "overlap", "status": "pass", "detail": "max_abs_smd=0.693"}, {"name": "support_trim", "status": "pass", "detail": "base=4.3066, trimmed=10.2299"}, {"name": "border_design", "status": "warn", "detail": "baseline_p=0.4633, placebo_p=0.8235"}, {"name": "negative_control_outcomes", "status": "fail", "detail": "significant_negative_controls=3"}, {"name": "staggered_att", "status": "warn", "detail": "interpretable=False, pretrend_pass=False"}, {"name": "min_wage_redesign", "status": "warn", "detail": "fd_p=0.8929, placebo_p=0.1033, neg_treat_p=0.1015, event_pretrend=True, coverage_sign_flip=False"}]}}, {"slug": "snap_bbce_property", "title": "SNAP BBCE -> Property Crime", "tier": "exploratory", "tier_label": "Exploratory", "twfe": {"coefficient": 33.1915, "std_error": 90.7203, "p_value": 0.7145, "ci_lower": -144.63, "ci_upper": 211.01}, "pretrend": {"p_value": 0.0006523047814745997, "pass": false}, "credibility": {"verdict": "caution", "frontend_status": "exploratory_failed_pretrends", "status_description": "Event-study pre-trends fail", "headline_eligible": false, "checks": [{"name": "event_pretrend", "status": "fail", "detail": "p=0.0007"}, {"name": "overlap", "status": "not_available", "detail": "No overlap diagnostics."}, {"name": "support_trim", "status": "not_available", "detail": "No support-trim row for this lane."}, {"name": "border_design", "status": "not_available", "detail": "No border row for this lane."}, {"name": "negative_control_outcomes", "status": "not_available", "detail": "No negative-control outcome lane."}, {"name": "staggered_att", "status": "fail", "detail": "interpretable=True, pretrend_pass=False"}]}}, {"slug": "snap_bbce_violent", "title": "SNAP BBCE -> Violent Crime", "tier": "exploratory", "tier_label": "Exploratory", "twfe": {"coefficient": -2.778, "std_error": 9.4301, "p_value": 0.7683, "ci_lower": -21.26, "ci_upper": 15.71}, "pretrend": {"p_value": 3.305644101669891e-06, "pass": false}, "credibility": {"verdict": "caution", "frontend_status": "exploratory_failed_pretrends", "status_description": "Event-study pre-trends fail", "headline_eligible": false, "checks": [{"name": "event_pretrend", "status": "fail", "detail": "p=0.0000"}, {"name": "overlap", "status": "not_available", "detail": "No overlap diagnostics."}, {"name": "support_trim", "status": "not_available", "detail": "No support-trim row for this lane."}, {"name": "border_design", "status": "not_available", "detail": "No border row for this lane."}, {"name": "negative_control_outcomes", "status": "not_available", "detail": "No negative-control outcome lane."}, {"name": "staggered_att", "status": "pass", "detail": "interpretable=True, pretrend_pass=True"}]}}, {"slug": "tanf_property", "title": "TANF Benefit -> Property Crime", "tier": "exploratory", "tier_label": "Exploratory", "twfe": {"coefficient": 0.1953, "std_error": 0.3408, "p_value": 0.5667, "ci_lower": -0.47, "ci_upper": 0.86}, "dml": {"theta": -0.2746, "se": 0.1295, "p_value": 0.0339, "ci_lower": -0.53, "ci_upper": -0.02}, "credibility": {"verdict": "caution", "frontend_status": "exploratory_low_signal", "status_description": "Low statistical signal", "headline_eligible": false, "checks": [{"name": "event_pretrend", "status": "not_available", "detail": "No event-study pretrend test."}, {"name": "overlap", "status": "fail", "detail": "max_abs_smd=1.479"}, {"name": "support_trim", "status": "not_available", "detail": "No support-trim row for this lane."}, {"name": "border_design", "status": "not_available", "detail": "No border row for this lane."}, {"name": "negative_control_outcomes", "status": "not_available", "detail": "No negative-control outcome lane."}, {"name": "staggered_att", "status": "not_available", "detail": "No staggered row for this lane."}]}}, {"slug": "tanf_violent", "title": "TANF Benefit -> Violent Crime", "tier": "exploratory", "tier_label": "Exploratory", "twfe": {"coefficient": 0.0291, "std_error": 0.0738, "p_value": 0.6933, "ci_lower": -0.12, "ci_upper": 0.17}, "dml": {"theta": -0.0123, "se": 0.0179, "p_value": 0.4923, "ci_lower": -0.05, "ci_upper": 0.02}, "credibility": {"verdict": "caution", "frontend_status": "exploratory_low_signal", "status_description": "Low statistical signal", "headline_eligible": false, "checks": [{"name": "event_pretrend", "status": "not_available", "detail": "No event-study pretrend test."}, {"name": "overlap", "status": "fail", "detail": "max_abs_smd=1.479"}, {"name": "support_trim", "status": "not_available", "detail": "No support-trim row for this lane."}, {"name": "border_design", "status": "not_available", "detail": "No border row for this lane."}, {"name": "negative_control_outcomes", "status": "not_available", "detail": "No negative-control outcome lane."}, {"name": "staggered_att", "status": "not_available", "detail": "No staggered row for this lane."}]}}], "bidirectional": [{"label": "poverty_to_violent", "title": "Poverty -> Violent Crime", "treatment": "poverty_rate", "outcome": "violent_crime_rate", "headline": "lag1 FE does not clearly detect an association; DML is statistically strong; placebo lead is clean; longer lags are weak.", "fe_coefficient": -0.5727, "fe_p_value": 0.5127, "fe_ci_lower": -2.29, "fe_ci_upper": 1.14, "fe_n_obs": 27616, "dml_theta": 6.8411, "dml_p_value": 0.0, "dml_ci_lower": 5.34, "dml_ci_upper": 8.34, "overlap": {"max_abs_smd": 2.05, "oof_r2": 0.85, "residual_to_treatment_std": 0.38}, "placebo_lead": {"coefficient": -0.1107, "p_value": 0.8642}}, {"label": "poverty_to_property", "title": "Poverty -> Property Crime", "treatment": "poverty_rate", "outcome": "property_crime_rate", "headline": "lag1 FE detects an association; DML is statistically strong; placebo lead is concerning; longer lags are weak.", "fe_coefficient": 20.9617, "fe_p_value": 0.0131, "fe_ci_lower": 4.4, "fe_ci_upper": 37.52, "fe_n_obs": 27616, "dml_theta": 51.3435, "dml_p_value": 0.0, "dml_ci_lower": 38.5, "dml_ci_upper": 64.19, "overlap": {"max_abs_smd": 2.05, "oof_r2": 0.85, "residual_to_treatment_std": 0.38}, "placebo_lead": {"coefficient": 25.7216, "p_value": 0.0012}}, {"label": "violent_to_poverty", "title": "Violent Crime -> Poverty", "treatment": "violent_crime_rate", "outcome": "poverty_rate", "headline": "lag1 FE does not clearly detect an association; DML is statistically strong; placebo lead is clean; longer lags are weak.", "fe_coefficient": -0.0, "fe_p_value": 0.68, "fe_ci_lower": -0.0, "fe_ci_upper": 0.0, "fe_n_obs": 27616, "dml_theta": 0.0002, "dml_p_value": 0.0002, "dml_ci_lower": 0.0, "dml_ci_upper": 0.0, "overlap": {"max_abs_smd": 1.04, "oof_r2": 0.44, "residual_to_treatment_std": 0.75}, "placebo_lead": {"coefficient": -0.0, "p_value": 0.7465}}, {"label": "property_to_poverty", "title": "Property Crime -> Poverty", "treatment": "property_crime_rate", "outcome": "poverty_rate", "headline": "lag1 FE detects an association; DML is statistically strong; placebo lead is concerning; longer lags persist.", "fe_coefficient": 0.0001, "fe_p_value": 0.0034, "fe_ci_lower": 0.0, "fe_ci_upper": 0.0, "fe_n_obs": 27616, "dml_theta": 0.0, "dml_p_value": 0.0003, "dml_ci_lower": 0.0, "dml_ci_upper": 0.0, "overlap": {"max_abs_smd": 0.94, "oof_r2": 0.3, "residual_to_treatment_std": 0.84}, "placebo_lead": {"coefficient": 0.0001, "p_value": 0.0011}}]};
-  </script>
   <script>
 /* ============================================================
    Rootcause — Site Renderer
@@ -1237,12 +1236,39 @@ main {
   };
 
   /* --- Data loading --- */
-  if (window.SITE_DATA) {
-    try {
-      render(window.SITE_DATA);
-    } catch (e) {
-      var errEl = document.getElementById("data-content");
-      if (errEl) errEl.innerHTML = '<p style="color:red;padding:2rem;">Render error: ' + e.message + '</p>';
+  loadSiteData();
+
+  function loadSiteData() {
+    if (window.SITE_DATA) {
+      try {
+        render(window.SITE_DATA);
+      } catch (e) {
+        showRenderError(e);
+      }
+      return;
+    }
+
+    fetch("assets/data/site_data.json")
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error("Failed to load site data: " + response.status);
+        }
+        return response.json();
+      })
+      .then(function (data) {
+        window.SITE_DATA = data;
+        render(data);
+      })
+      .catch(showRenderError);
+  }
+
+  function showRenderError(error) {
+    var errEl = document.getElementById("data-content");
+    if (errEl) {
+      errEl.innerHTML =
+        '<p style="color:red;padding:2rem;">Render error: ' +
+        (error && error.message ? error.message : String(error)) +
+        "</p>";
     }
   }
 
@@ -1459,7 +1485,7 @@ main {
       out += '<th>Method</th><th>Estimate</th><th>p-value</th><th>95% CI</th>';
       out += '</tr></thead><tbody>';
 
-      out += buildEstimateRow("FE", row.fe_coefficient, row.fe_p_value, row.fe_ci_lower, row.fe_ci_upper);
+      out += buildEstimateRow("TWFE", row.fe_coefficient, row.fe_p_value, row.fe_ci_lower, row.fe_ci_upper);
       out += buildEstimateRow("DML", row.dml_theta, row.dml_p_value, row.dml_ci_lower, row.dml_ci_upper);
 
       out += '</tbody></table>';
@@ -1500,10 +1526,10 @@ main {
     var feS = row.fe_p_value < 0.05;
     var dmlS = row.dml_p_value < 0.05;
 
-    if (feS && dmlS) parts.push("Both FE and DML detect a statistically significant association.");
-    else if (dmlS) parts.push("FE does not detect a clear association, but DML is statistically significant.");
-    else if (feS) parts.push("FE detects an association, but DML does not confirm it.");
-    else parts.push("Neither FE nor DML detects a clear association.");
+    if (feS && dmlS) parts.push("Both TWFE and DML detect a statistically significant association.");
+    else if (dmlS) parts.push("TWFE does not detect a clear association, but DML is statistically significant.");
+    else if (feS) parts.push("TWFE detects an association, but DML does not confirm it.");
+    else parts.push("Neither TWFE nor DML detects a clear association.");
 
     if (row.placebo_lead) {
       if (row.placebo_lead.p_value < 0.05) {

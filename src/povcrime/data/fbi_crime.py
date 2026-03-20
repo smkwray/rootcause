@@ -339,7 +339,7 @@ class FBICrimeAdapter(BaseAdapter):
         pd.DataFrame
             DataFrame with columns defined in ``EXPECTED_COLUMNS``.
         """
-        manual_path = self._find_manual_county_file()
+        manual_path = self.county_fallback_file()
         if manual_path is not None:
             logger.info(
                 "Loading county-level FBI fallback file from %s.", manual_path
@@ -435,13 +435,17 @@ class FBICrimeAdapter(BaseAdapter):
         df = df[EXPECTED_COLUMNS].reset_index(drop=True)
         return df
 
-    def _find_manual_county_file(self) -> Path | None:
+    def county_fallback_file(self) -> Path | None:
         """Return the first supported county-level fallback file if present."""
         for filename in _MANUAL_FILE_CANDIDATES:
             candidate = self._raw_dir / filename
             if candidate.exists():
                 return candidate
         return None
+
+    def has_county_fallback_file(self) -> bool:
+        """Return ``True`` when a supported county-level fallback exists."""
+        return self.county_fallback_file() is not None
 
     # ------------------------------------------------------------------ #
     # load_county_file

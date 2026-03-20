@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: python -m pip install -e .[dev]
+
+      - name: Ruff
+        run: ruff check src tests scripts
+
+      - name: Pytest
+        run: pytest -q
+
+      - name: Contract smoke
+        run: pytest -q tests/test_config.py tests/test_analysis_registry.py tests/test_fbi_crime.py tests/test_dml.py tests/test_overlap.py tests/test_report_contracts.py tests/test_refresh_public_data.py tests/test_app_artifacts.py tests/test_final_report.py tests/test_smoke_pipeline.py tests/test_bidirectional_runner.py

@@ -9,6 +9,15 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from povcrime.analysis import get_analysis_lane
+from povcrime.config import ProjectConfig, get_config
+from povcrime.reports.contracts import (
+    infer_crime_data_level,
+    load_bidirectional_summary,
+    validate_credibility_summary,
+    validate_results_summary,
+)
+
 _PANEL_SOURCE_COLUMNS: dict[str, list[str]] = {
     "saipe": ["poverty_rate", "median_hh_income", "population"],
     "laus": ["unemployment_rate"],
@@ -62,48 +71,28 @@ _PANEL_SOURCE_COLUMNS: dict[str, list[str]] = {
     "policy": ["effective_min_wage", "broad_based_cat_elig"],
 }
 
-_LANE_FAMILIES: dict[str, dict[str, object]] = {
-    "min_wage": {
-        "treatment_family": "minimum_wage",
-        "display_priority": "primary",
-        "headline_eligible": True,
-    },
-    "eitc": {
-        "treatment_family": "state_eitc",
-        "display_priority": "secondary",
-        "headline_eligible": False,
-    },
-    "tanf": {
-        "treatment_family": "tanf",
-        "display_priority": "exploratory",
-        "headline_eligible": False,
-    },
-    "snap_bbce": {
-        "treatment_family": "snap_bbce",
-        "display_priority": "exploratory",
-        "headline_eligible": False,
-    },
-}
-
-
 def build_app_artifacts(
     *,
     project_root: Path,
     panel: pd.DataFrame,
     output_dir: Path,
+    config: ProjectConfig | None = None,
 ) -> tuple[Path, Path]:
     """Write a stable artifact manifest and results summary for the app."""
+    cfg = config or get_config()
     app_dir = output_dir / "app"
     app_dir.mkdir(parents=True, exist_ok=True)
 
     manifest = _build_manifest(project_root=project_root, output_dir=output_dir)
-    summary = _build_results_summary(project_root=project_root, panel=panel, output_dir=output_dir)
+    summary = _build_results_summary(project_root=project_root, panel=panel, output_dir=output_dir, config=cfg)
     credibility = _build_credibility_summary(summary=summary, output_dir=output_dir)
 
     manifest_path = app_dir / "artifact_manifest.json"
     summary_path = app_dir / "results_summary.json"
     credibility_path = app_dir / "credibility_summary.json"
     summary["artifacts"]["credibility_summary"] = str(credibility_path.relative_to(project_root))
+    validate_results_summary(summary)
+    validate_credibility_summary(credibility)
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     credibility_path.write_text(json.dumps(credibility, indent=2), encoding="utf-8")
@@ -134,12 +123,14 @@ def _build_results_summary(
     project_root: Path,
     panel: pd.DataFrame,
     output_dir: Path,
+    config: ProjectConfig,
 ) -> dict[str, object]:
     estimand_slugs = _discover_estimand_slugs(output_dir)
     estimands = [
-        _build_estimand_summary(slug=slug, project_root=project_root, output_dir=output_dir)
+        _build_estimand_summary(slug=slug, project_root=project_root, output_dir=output_dir, config=config)
         for slug in estimand_slugs
     ]
+    crime_data_level = infer_crime_data_level(panel)
     return {
         "generated_date": date.today().isoformat(),
         "panel": {
@@ -156,6 +147,7 @@ def _build_results_summary(
             "low_coverage_rows": int(panel["low_coverage"].sum())
             if "low_coverage" in panel.columns
             else 0,
+            "crime_data_level": crime_data_level,
             "available_sources": _panel_source_coverage(panel),
         },
         "artifacts": {
@@ -196,11 +188,11 @@ def _build_results_summary(
             ),
         },
         "exploratory": {
-            "bidirectional_poverty_crime": _read_json_relaxed(
+            "bidirectional_poverty_crime": _read_bidirectional_summary_if_exists(
                 output_dir / "exploratory" / "bidirectional_poverty_crime" / "bidirectional_summary.json"
             ),
         },
-        "research_lanes": _build_research_lanes(estimands),
+        "research_lanes": _build_research_lanes(estimands, config=config),
         "estimands": estimands,
     }
 
@@ -224,7 +216,9 @@ def _build_estimand_summary(
     slug: str,
     project_root: Path,
     output_dir: Path,
+    config: ProjectConfig,
 ) -> dict[str, object]:
+    lane = get_analysis_lane(slug, config=config)
     baseline_dir = output_dir / "baseline" / slug
     dml_dir = output_dir / "dml" / slug
     overlap_dir = output_dir / "overlap" / slug
@@ -237,7 +231,7 @@ def _build_estimand_summary(
 
     result: dict[str, object] = {
         "slug": slug,
-        "title": _slug_to_title(slug),
+        "title": lane.title if lane is not None else slug.replace("_", " ").title(),
         "baseline": baseline,
         "dml": dml,
         "causal_forest": causal_forest,
@@ -248,20 +242,25 @@ def _build_estimand_summary(
             baseline=baseline,
             dml=dml,
             overlap=overlap,
+            config=config,
         ),
     }
     return result
 
 
-def _build_research_lanes(estimands: list[dict[str, object]]) -> dict[str, list[str]]:
+def _build_research_lanes(
+    estimands: list[dict[str, object]],
+    *,
+    config: ProjectConfig,
+) -> dict[str, list[str]]:
     lanes: dict[str, list[str]] = {
         "primary": [],
         "secondary": [],
         "exploratory": [],
     }
     for estimand in estimands:
-        frontend = estimand.get("frontend") or {}
-        priority = frontend.get("display_priority")
+        lane = get_analysis_lane(str(estimand["slug"]), config=config)
+        priority = lane.tier if lane is not None else (estimand.get("frontend") or {}).get("display_priority")
         if priority in lanes:
             lanes[str(priority)].append(str(estimand["slug"]))
     return lanes
@@ -350,18 +349,10 @@ def _read_json_relaxed(path: Path) -> dict[str, object] | None:
     return json.loads(path.read_text())
 
 
-def _slug_to_title(slug: str) -> str:
-    mapping = {
-        "min_wage_violent": "Minimum Wage -> Violent Crime",
-        "min_wage_property": "Minimum Wage -> Property Crime",
-        "snap_bbce_violent": "SNAP BBCE -> Violent Crime",
-        "snap_bbce_property": "SNAP BBCE -> Property Crime",
-        "eitc_violent": "State EITC Rate -> Violent Crime",
-        "eitc_property": "State EITC Rate -> Property Crime",
-        "tanf_violent": "TANF Benefit -> Violent Crime",
-        "tanf_property": "TANF Benefit -> Property Crime",
-    }
-    return mapping.get(slug, slug.replace("_", " ").title())
+def _read_bidirectional_summary_if_exists(path: Path) -> dict[str, object] | None:
+    if not path.exists():
+        return None
+    return load_bidirectional_summary(path)
 
 
 def _build_frontend_metadata(
@@ -370,9 +361,10 @@ def _build_frontend_metadata(
     baseline: dict[str, object] | None,
     dml: dict[str, object] | None,
     overlap: dict[str, object] | None,
+    config: ProjectConfig,
 ) -> dict[str, object]:
-    family_key = _family_key_from_slug(slug)
-    family = _LANE_FAMILIES[family_key]
+    lane = get_analysis_lane(slug, config=config)
+    family_key = lane.family if lane is not None else _fallback_family_from_slug(slug)
     pretrend = baseline.get("pretrend") if baseline else None
     overlap_max_abs_smd = _as_float((overlap or {}).get("max_abs_smd"))
     pretrend_pass = None if pretrend is None else bool(pretrend.get("pass"))
@@ -390,10 +382,10 @@ def _build_frontend_metadata(
         pretrend_pass=pretrend_pass,
     )
     return {
-        "treatment_family": family["treatment_family"],
-        "outcome_family": _outcome_family_from_slug(slug),
-        "display_priority": family["display_priority"],
-        "headline_eligible": family["headline_eligible"],
+        "treatment_family": lane.family if lane is not None else family_key,
+        "outcome_family": lane.outcome_family if lane is not None else _fallback_outcome_family_from_slug(slug),
+        "display_priority": lane.display_priority if lane is not None else "exploratory",
+        "headline_eligible": lane.headline_eligible if lane is not None else False,
         "status": _frontend_status(
             family_key=family_key,
             pretrend_pass=pretrend_pass,
@@ -404,19 +396,19 @@ def _build_frontend_metadata(
     }
 
 
-def _family_key_from_slug(slug: str) -> str:
+def _fallback_family_from_slug(slug: str) -> str:
     if slug.startswith("snap_bbce_"):
         return "snap_bbce"
     if slug.startswith("min_wage_"):
-        return "min_wage"
+        return "minimum_wage"
     if slug.startswith("eitc_"):
-        return "eitc"
+        return "state_eitc"
     if slug.startswith("tanf_"):
         return "tanf"
     raise KeyError(f"Unrecognized estimand slug: {slug}")
 
 
-def _outcome_family_from_slug(slug: str) -> str:
+def _fallback_outcome_family_from_slug(slug: str) -> str:
     if slug.endswith("_violent"):
         return "violent_crime"
     if slug.endswith("_property"):
@@ -434,7 +426,7 @@ def _frontend_status(
         return "exploratory_failed_pretrends"
     if family_key == "tanf":
         return "exploratory_low_signal"
-    if family_key == "eitc":
+    if family_key == "state_eitc":
         return "secondary_method_sensitive"
     if pretrend_pass is False:
         return "primary_pretrend_warning"
@@ -457,11 +449,11 @@ def _frontend_summary(
     dml_direction = _direction_label((dml or {}).get("theta"))
     overlap_label = _overlap_label((overlap or {}).get("max_abs_smd"))
 
-    if family_key == "min_wage":
+    if family_key == "minimum_wage":
         if dml_sig:
             return f"FE is weak; DML is {dml_direction}; overlap caution is {overlap_label}."
         return f"FE and DML are both weak or mixed; overlap caution is {overlap_label}."
-    if family_key == "eitc":
+    if family_key == "state_eitc":
         fe_clause = "FE pretrends pass but FE is weak" if not fe_sig and pretrend_pass is True else "FE remains mixed"
         dml_clause = f"DML is {dml_direction}" if dml_sig else "DML is weak"
         return f"{fe_clause}; {dml_clause}; treat this lane as method-sensitive."
@@ -708,7 +700,10 @@ def _credibility_negative_outcomes(*, slug: str, falsification: pd.DataFrame | N
     required = {"label", "p_value"}
     if not required.issubset(falsification.columns):
         return {"name": "negative_control_outcomes", "status": "not_available", "detail": "Falsification columns are incomplete."}
-    prefix = "min_wage__" if slug.startswith("min_wage_") else "eitc__" if slug.startswith("eitc_") else None
+    if "_" not in slug:
+        prefix = None
+    else:
+        prefix = f"{slug.rsplit('_', 1)[0]}__"
     if prefix is None:
         return {"name": "negative_control_outcomes", "status": "not_available", "detail": "No negative-control outcome lane."}
     rows = falsification.loc[falsification["label"].astype(str).str.startswith(prefix)]

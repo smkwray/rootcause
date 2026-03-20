@@ -9,19 +9,13 @@ from pathlib import Path
 
 import pandas as pd
 
-
-_OUTCOME_SPECS = [
-    {
-        "label": "Minimum Wage -> Violent Crime",
-        "slug": "min_wage_violent",
-        "outcome": "violent_crime_rate",
-    },
-    {
-        "label": "Minimum Wage -> Property Crime",
-        "slug": "min_wage_property",
-        "outcome": "property_crime_rate",
-    },
-]
+from povcrime.analysis import get_analysis_lanes, get_bidirectional_lane
+from povcrime.config import ProjectConfig, get_config
+from povcrime.reports.contracts import (
+    infer_crime_data_level,
+    load_bidirectional_summary,
+    load_results_summary,
+)
 
 _SOURCE_LABELS = {
     "census_cbp": "County Business Patterns",
@@ -42,10 +36,15 @@ def build_final_report(
     output_dir: Path,
     overlap_dir: Path | None = None,
     app_dir: Path | None = None,
+    config: ProjectConfig | None = None,
 ) -> Path:
     """Build the final markdown report and return the written path."""
+    cfg = config or get_config()
     output_dir.mkdir(parents=True, exist_ok=True)
     report_path = output_dir / "final_report.md"
+    app_summary = _read_app_summary(app_dir)
+    crime_data_level = _crime_data_level(app_summary, panel)
+    primary_specs = get_analysis_lanes(config=cfg, tiers={"primary"}, families={"minimum_wage"})
 
     lines = [
         "# Final Backend Report",
@@ -65,6 +64,7 @@ def build_final_report(
         f"- Years: {panel['year'].min()}-{panel['year'].max()} ({panel['year'].nunique()} years)",
         f"- Violent-crime rate non-null rows: {int(panel['violent_crime_rate'].notna().sum()):,}",
         f"- Property-crime rate non-null rows: {int(panel['property_crime_rate'].notna().sum()):,}",
+        f"- Crime data provenance: {crime_data_level}",
         f"- Mean source share: {panel['source_share'].mean():.3f}" if "source_share" in panel.columns else "- Mean source share: n/a",
         f"- Low-coverage rows: {int(panel['low_coverage'].sum()):,}" if "low_coverage" in panel.columns else "- Low-coverage rows: n/a",
         f"- QA report: [{qa_report_path.name}]({_relative_link(qa_report_path, output_dir)})",
@@ -73,7 +73,7 @@ def build_final_report(
         "",
     ]
 
-    for spec in _OUTCOME_SPECS:
+    for spec in primary_specs:
         lines.extend(
             _build_outcome_section(
                 spec=spec,
@@ -91,14 +91,15 @@ def build_final_report(
     )
     lines.extend(
         _build_data_expansion_section(
-            app_dir=app_dir,
-            report_dir=output_dir,
+            summary=app_summary,
         )
     )
     lines.extend(
         _build_policy_lane_section(
             app_dir=app_dir,
+            summary=app_summary,
             report_dir=output_dir,
+            config=cfg,
         )
     )
     lines.extend(
@@ -135,18 +136,21 @@ def build_final_report(
         _build_bidirectional_section(
             app_dir=app_dir,
             report_dir=output_dir,
+            config=cfg,
         )
     )
     lines.extend(
         _build_overlap_section(
             overlap_dir=overlap_dir,
             report_dir=output_dir,
+            config=cfg,
         )
     )
     lines.extend(
         _build_snap_section(
             baseline_dir=baseline_dir,
             report_dir=output_dir,
+            config=cfg,
         )
     )
     lines.extend(
@@ -184,12 +188,12 @@ def build_final_report(
 
 def _build_outcome_section(
     *,
-    spec: dict[str, str],
+    spec,
     baseline_dir: Path,
     dml_dir: Path,
     report_dir: Path,
 ) -> list[str]:
-    slug = spec["slug"]
+    slug = spec.slug
     base_dir = baseline_dir / slug
     dml_spec_dir = dml_dir / slug
 
@@ -205,7 +209,7 @@ def _build_outcome_section(
     forest_importance = pd.read_csv(forest_importance_path).head(3)
 
     lines = [
-        f"### {spec['label']}",
+        f"### {spec.title}",
         "",
         f"- TWFE coefficient: {fe_row['coefficient']:.4f} (SE {fe_row['std_error']:.4f}, p={fe_row['p_value']:.4f})",
         f"- TWFE 95% CI: [{fe_row['ci_lower']:.4f}, {fe_row['ci_upper']:.4f}]",
@@ -259,10 +263,8 @@ def _build_interpretation_section(
 
 def _build_data_expansion_section(
     *,
-    app_dir: Path | None,
-    report_dir: Path,
+    summary: dict[str, object] | None,
 ) -> list[str]:
-    summary = _read_app_summary(app_dir)
     lines = [
         "## Public Data Expansion",
         "",
@@ -293,6 +295,7 @@ def _build_data_expansion_section(
         [
             "",
             "- The backend is no longer just minimum wage plus SNAP; the panel now includes county business activity, county housing-price pressure, local fair-market rents, and state EITC/TANF policy histories.",
+            f"- Crime data provenance for the main panel: {summary.get('panel', {}).get('crime_data_level', 'n/a')}.",
             "",
         ]
     )
@@ -302,9 +305,10 @@ def _build_data_expansion_section(
 def _build_policy_lane_section(
     *,
     app_dir: Path | None,
+    summary: dict[str, object] | None,
     report_dir: Path,
+    config: ProjectConfig,
 ) -> list[str]:
-    summary = _read_app_summary(app_dir)
     lines = [
         "## Additional Policy Lanes",
         "",
@@ -315,12 +319,9 @@ def _build_policy_lane_section(
 
     estimands = {row["slug"]: row for row in summary.get("estimands", [])}
     specs = [
-        ("eitc_violent", "State EITC Rate -> Violent Crime"),
-        ("eitc_property", "State EITC Rate -> Property Crime"),
-        ("tanf_violent", "TANF Benefit -> Violent Crime"),
-        ("tanf_property", "TANF Benefit -> Property Crime"),
-        ("snap_bbce_violent", "SNAP BBCE -> Violent Crime"),
-        ("snap_bbce_property", "SNAP BBCE -> Property Crime"),
+        lane
+        for lane in get_analysis_lanes(config=config)
+        if lane.tier != "primary"
     ]
     lines.extend(
         [
@@ -328,7 +329,8 @@ def _build_policy_lane_section(
             "|------|---------|------------|------------------|-----------|-------------|-------------|-----------------|",
         ]
     )
-    for slug, label in specs:
+    for lane in specs:
+        slug = lane.slug
         estimand = estimands.get(slug)
         if estimand is None:
             continue
@@ -339,7 +341,7 @@ def _build_policy_lane_section(
         overlap = estimand.get("overlap") or {}
         frontend = estimand.get("frontend") or {}
         lines.append(
-            f"| {label} | {_fmt_stat(treatment_row.get('coefficient'))} | {_fmt_stat(treatment_row.get('p_value'))} | "
+            f"| {lane.title} | {_fmt_stat(treatment_row.get('coefficient'))} | {_fmt_stat(treatment_row.get('p_value'))} | "
             f"{_fmt_stat(pretrend.get('p_value'))} | {_fmt_stat(dml.get('theta'))} | {_fmt_stat(dml.get('p_value'))} | "
             f"{_fmt_stat(overlap.get('max_abs_smd'))} | {frontend.get('status', 'n/a')} |"
         )
@@ -349,7 +351,7 @@ def _build_policy_lane_section(
             "- EITC is the only serious non-minimum-wage lane right now: FE pretrends pass, but FE remains weak while DML is large and positive, so it should be treated as secondary and method-sensitive rather than headline-clean.",
             "- TANF is low-signal and has the weakest overlap/support diagnostics in the project, so it should remain exploratory.",
             "- SNAP BBCE remains exploratory because both event-study pretrend tests fail.",
-            f"- Frontend summary contract: [{(app_dir / 'results_summary.json').name}]({_relative_link(app_dir / 'results_summary.json', report_dir)})" if app_dir and (app_dir / "results_summary.json").exists() else "- Frontend summary contract: n/a",
+            f"- Frontend summary contract: [results_summary.json]({_relative_link(app_dir / 'results_summary.json', report_dir)})" if app_dir and (app_dir / "results_summary.json").exists() else "- Frontend summary contract: n/a",
             "",
         ]
     )
@@ -360,6 +362,7 @@ def _build_bidirectional_section(
     *,
     app_dir: Path | None,
     report_dir: Path,
+    config: ProjectConfig,
 ) -> list[str]:
     summary = _read_bidirectional_summary(app_dir)
     lines = [
@@ -377,11 +380,12 @@ def _build_bidirectional_section(
         ]
     )
     for row in summary.get("estimands", []):
+        lane = get_bidirectional_lane(str(row.get("label", "")), config=config)
         dml = row.get("dml") or {}
         overlap = row.get("overlap") or {}
         fe = row.get("baseline_fe") or {}
         lines.append(
-            f"| {row.get('title', row.get('label', 'n/a'))} | {_fmt_stat(fe.get('coefficient'))} | "
+            f"| {lane.title if lane is not None else row.get('title', row.get('label', 'n/a'))} | {_fmt_stat(fe.get('coefficient'))} | "
             f"{_fmt_stat(fe.get('p_value'))} | {_fmt_stat(dml.get('theta'))} | {_fmt_stat(dml.get('p_value'))} | "
             f"{_fmt_stat(overlap.get('max_abs_smd'))} | {row.get('headline', 'n/a')} |"
         )
@@ -604,6 +608,7 @@ def _build_overlap_section(
     *,
     overlap_dir: Path | None,
     report_dir: Path,
+    config: ProjectConfig,
 ) -> list[str]:
     lines = [
         "## ML Support Diagnostics",
@@ -619,20 +624,13 @@ def _build_overlap_section(
             "|---------|--------|------------------------|-------------|",
         ]
     )
-    for slug, label in (
-        ("min_wage_violent", "Minimum Wage -> Violent Crime"),
-        ("min_wage_property", "Minimum Wage -> Property Crime"),
-        ("eitc_violent", "State EITC Rate -> Violent Crime"),
-        ("eitc_property", "State EITC Rate -> Property Crime"),
-        ("tanf_violent", "TANF Benefit -> Violent Crime"),
-        ("tanf_property", "TANF Benefit -> Property Crime"),
-    ):
-        summary_path = overlap_dir / slug / "support_summary.json"
+    for lane in get_analysis_lanes(config=config, method="overlap"):
+        summary_path = overlap_dir / lane.slug / "support_summary.json"
         if not summary_path.exists():
             continue
         summary = json.loads(summary_path.read_text())
         lines.append(
-            f"| {label} | {summary['oof_r2']:.3f} | "
+            f"| {lane.title} | {summary['oof_r2']:.3f} | "
             f"{summary['residual_to_treatment_std']:.3f} | {summary['max_abs_smd']:.3f} |"
         )
     lines.extend(
@@ -651,12 +649,10 @@ def _build_snap_section(
     *,
     baseline_dir: Path,
     report_dir: Path,
+    config: ProjectConfig,
 ) -> list[str]:
-    snap_specs = [
-        ("snap_bbce_violent", "SNAP BBCE -> Violent Crime"),
-        ("snap_bbce_property", "SNAP BBCE -> Property Crime"),
-    ]
-    available = [(slug, label) for slug, label in snap_specs if (baseline_dir / slug / "baseline_fe_summary.csv").exists()]
+    snap_specs = get_analysis_lanes(config=config, families={"snap_bbce"})
+    available = [lane for lane in snap_specs if (baseline_dir / lane.slug / "baseline_fe_summary.csv").exists()]
     lines = [
         "## SNAP Exploratory Lane",
         "",
@@ -671,14 +667,14 @@ def _build_snap_section(
             "|---------|---------|------------|------------------|",
         ]
     )
-    for slug, label in available:
+    for lane in available:
         row = _read_treatment_row(
-            baseline_dir / slug / "baseline_fe_summary.csv",
+            baseline_dir / lane.slug / "baseline_fe_summary.csv",
             variable="broad_based_cat_elig",
         )
-        pretrend = _read_json_if_exists(baseline_dir / slug / "event_study_pretrend.json") or {}
+        pretrend = _read_json_if_exists(baseline_dir / lane.slug / "event_study_pretrend.json") or {}
         lines.append(
-            f"| {label} | {row['coefficient']:.4f} | {row['p_value']:.4f} | {_fmt_stat(pretrend.get('p_value'))} |"
+            f"| {lane.title} | {row['coefficient']:.4f} | {row['p_value']:.4f} | {_fmt_stat(pretrend.get('p_value'))} |"
         )
     lines.extend(
         [
@@ -764,7 +760,17 @@ def _read_app_summary(app_dir: Path | None) -> dict[str, object] | None:
     path = app_dir / "results_summary.json"
     if not path.exists():
         return None
-    return json.loads(path.read_text())
+    return load_results_summary(path)
+
+
+def _crime_data_level(summary: dict[str, object] | None, panel: pd.DataFrame) -> str:
+    if summary is not None:
+        panel_summary = summary.get("panel", {})
+        if isinstance(panel_summary, dict):
+            value = panel_summary.get("crime_data_level")
+            if isinstance(value, str):
+                return value
+    return infer_crime_data_level(panel)
 
 
 def _read_bidirectional_summary(app_dir: Path | None) -> dict[str, object] | None:
@@ -773,7 +779,7 @@ def _read_bidirectional_summary(app_dir: Path | None) -> dict[str, object] | Non
     path = app_dir.parent / "exploratory" / "bidirectional_poverty_crime" / "bidirectional_summary.json"
     if not path.exists():
         return None
-    return json.loads(path.read_text())
+    return load_bidirectional_summary(path)
 
 
 def _read_treatment_row(path: Path, *, variable: str) -> dict[str, float]:

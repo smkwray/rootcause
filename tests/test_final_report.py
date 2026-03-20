@@ -121,25 +121,62 @@ def test_build_final_report_writes_markdown(tmp_path: Path):
     (app_dir / "results_summary.json").write_text(
         json.dumps(
             {
+                "generated_date": "2026-03-20",
                 "panel": {
+                    "rows": 2,
+                    "counties": 2,
+                    "year_min": 2020,
+                    "year_max": 2020,
+                    "violent_rows": 2,
+                    "property_rows": 2,
+                    "low_coverage_rows": 0,
+                    "crime_data_level": "county_fallback",
                     "available_sources": [
                         {
                             "name": "fhfa_hpi",
                             "columns": ["fhfa_hpi"],
                             "non_null_rows": 1,
                             "share": 0.5,
+                            "min_year_share": 0.5,
+                            "max_year_share": 0.5,
+                            "missing_rows": 1,
                         },
                         {
                             "name": "ukcpr_welfare",
                             "columns": ["state_eitc_rate"],
                             "non_null_rows": 2,
                             "share": 1.0,
+                            "min_year_share": 1.0,
+                            "max_year_share": 1.0,
+                            "missing_rows": 0,
                         },
                     ]
+                },
+                "artifacts": {
+                    "qa_report": "outputs/qa/data_quality_report.md",
+                    "final_report": None,
+                    "robustness_summary": None,
+                    "border_summary": None,
+                    "min_wage_identification_summary": None,
+                    "min_wage_event_study_summary": None,
+                    "min_wage_dose_bucket_summary": None,
+                    "min_wage_negative_control_treatment_summary": None,
+                    "support_trim_summary": None,
+                    "negative_control_summary": None,
+                    "staggered_summary": None,
+                    "crime_measurement_validation": None,
+                    "credibility_summary": "outputs/app/credibility_summary.json",
+                    "bidirectional_poverty_crime_summary": None,
+                },
+                "research_lanes": {
+                    "primary": ["min_wage_violent"],
+                    "secondary": [],
+                    "exploratory": [],
                 },
                 "estimands": [
                     {
                         "slug": "eitc_violent",
+                        "title": "State EITC Rate -> Violent Crime",
                         "baseline": {
                             "treatment_row": {"coefficient": 2.0, "p_value": 0.4},
                             "pretrend": {"p_value": 0.2, "pass": True},
@@ -150,6 +187,7 @@ def test_build_final_report_writes_markdown(tmp_path: Path):
                     },
                     {
                         "slug": "tanf_violent",
+                        "title": "TANF Benefit -> Violent Crime",
                         "baseline": {
                             "treatment_row": {"coefficient": 0.1, "p_value": 0.8},
                             "pretrend": None,
@@ -160,6 +198,7 @@ def test_build_final_report_writes_markdown(tmp_path: Path):
                     },
                     {
                         "slug": "snap_bbce_violent",
+                        "title": "SNAP BBCE -> Violent Crime",
                         "baseline": {
                             "treatment_row": {"coefficient": 1.0, "p_value": 0.7},
                             "pretrend": {"p_value": 0.001, "pass": False},
@@ -169,6 +208,7 @@ def test_build_final_report_writes_markdown(tmp_path: Path):
                         "frontend": {"status": "exploratory_failed_pretrends"},
                     },
                 ],
+                "exploratory": {},
             }
         ),
         encoding="utf-8",
@@ -180,10 +220,13 @@ def test_build_final_report_writes_markdown(tmp_path: Path):
             {
                 "estimands": [
                     {
+                        "label": "poverty_to_violent",
                         "title": "Poverty -> Violent Crime",
+                        "treatment": "poverty_rate",
+                        "outcome": "violent_crime_rate",
                         "baseline_fe": {"coefficient": 1.2, "p_value": 0.2},
-                        "dml": {"theta": 1.8, "p_value": 0.04},
-                        "overlap": {"max_abs_smd": 0.6},
+                        "dml": {"theta": 1.8, "p_value": 0.04, "panel_mode": "two_way_within"},
+                        "overlap": {"max_abs_smd": 0.6, "panel_mode": "two_way_within"},
                         "headline": "lag1 FE does not clearly detect an association; DML is statistically strong; placebo lead is clean; longer lags are weak.",
                     }
                 ]
@@ -313,6 +356,7 @@ def test_build_final_report_writes_markdown(tmp_path: Path):
     assert "Negative-Control Outcomes" in text
     assert "Staggered-Adoption ATT" in text
     assert "Bidirectional Poverty-Crime Check" in text
+    assert "Crime data provenance: county_fallback" in text
     assert "Poverty -> Violent Crime" in text
     assert "State EITC Rate -> Violent Crime" in text
     assert "Robustness" in text

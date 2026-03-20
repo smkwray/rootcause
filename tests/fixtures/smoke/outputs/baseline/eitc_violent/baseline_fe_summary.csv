@@ -1,0 +1,2 @@
+variable,coefficient,std_error,t_stat,p_value,ci_lower,ci_upper
+state_eitc_rate,1.40,0.90,1.56,0.140,-0.56,3.36

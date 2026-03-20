@@ -34,6 +34,7 @@ def main(argv: list[str] | None = None) -> None:
         project_root=config.project_root,
         panel=panel,
         output_dir=config.output_dir,
+        config=config,
     )
     logger.info("App artifact manifest written to %s", manifest_path)
     logger.info("App results summary written to %s", summary_path)

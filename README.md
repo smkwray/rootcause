@@ -1,5 +1,7 @@
 # Rootcause
 
+[![CI](https://github.com/smkwray/rootcause/actions/workflows/ci.yml/badge.svg)](https://github.com/smkwray/rootcause/actions/workflows/ci.yml)
+
 **Economic Policy, Poverty, and Crime in U.S. Counties, 2000--2024**
 
 A county-level empirical study examining the relationships between economic policy, poverty, and recorded crime. Tests whether changes in minimum wage, state earned income tax credits (EITC), SNAP eligibility rules, and TANF benefit levels affect crime rates -- and whether poverty and crime reinforce each other.
@@ -54,11 +56,13 @@ The panel contains **78,529 county-year observations** across **3,158 counties**
 The analysis applies multiple estimation strategies to each policy lane:
 
 - **Two-Way Fixed Effects (TWFE):** County and year fixed effects with event-study pre-trend tests.
-- **Double/Debiased Machine Learning (DML):** Cross-fitted random forests partial out high-dimensional confounders before estimating treatment effects.
+- **Double/Debiased Machine Learning (DML):** Cross-fitted histogram gradient boosting nuisance models partial out high-dimensional confounders before estimating treatment effects. County-year analyses use county-grouped sample splitting and a two-way within transform over county and year before nuisance fitting, so the same county does not appear in both train and test folds and the ML stage is panel-aware by default.
 - **Border-County Design:** Adjacent cross-state county pairs compared within pairs over time.
 - **Staggered-Adoption Estimator:** Stacked not-yet-treated approach to avoid heterogeneous timing bias.
 - **Robustness:** Population weighting, county detrending, strict coverage filters, placebo leads, support-trimmed samples.
 - **Falsification:** Negative-control outcomes (slow-moving demographics) test for residual confounding.
+
+The authoritative lane registry, panel metadata, titles, tiers, treatments, and outcomes live in [`configs/project.yaml`](configs/project.yaml). That now covers both the main policy-to-crime lanes and the exploratory bidirectional poverty/crime lanes. Backend scripts and report builders read those definitions through the typed loader in [`src/povcrime/config.py`](src/povcrime/config.py).
 
 ## Credibility Framework
 
@@ -87,6 +91,48 @@ This study has fundamental constraints that no amount of robustness checking can
 - **Results are sensitive to estimator choice.** TWFE and DML disagree on sign, magnitude, and significance for the same policy lane. This is transparently reported but limits the strength of any conclusion.
 - **Border design is underpowered.** Only 798 cross-state adjacent county pairs are available, limiting statistical power for detecting moderate effects.
 
+## Backend Quickstart
+
+Install the project and development tools:
+
+```bash
+python -m pip install -e .[dev]
+```
+
+Run a fast local verification pass:
+
+```bash
+make smoke
+```
+
+`make smoke` includes a fixture-backed script smoke test that runs the real `build_panel -> build_qa_report -> build_app_artifacts -> build_final_report -> refresh_public_data` chain against tiny local fixtures with no network access.
+
+Run the standard backend pipeline:
+
+```bash
+make full
+```
+
+If you want the steps individually:
+
+```bash
+make download
+make build
+make qa
+make baseline
+make dml
+make overlap
+make report
+make app
+make public-data
+```
+
+Notes:
+
+- `make download` now includes the normal FBI county-fallback path when county-level crime needs to be constructed from the raw FBI files.
+- `make build` requires county-level FBI crime by default for the county-year panel. Use `python scripts/build_panel.py --allow-missing-county-crime` only for debugging or partial builds.
+- `make fbi-county-fallback` is available if you want to build the county-level FBI fallback explicitly.
+
 ## Viewing the Site
 
 The static results site is published at **[smkwray.github.io/rootcause](https://smkwray.github.io/rootcause/)**.
@@ -104,7 +150,7 @@ python3 -m http.server
 The site reads from a sanitized data snapshot at `docs/assets/data/site_data.json`. To update it after re-running the backend pipeline:
 
 ```bash
-python3 scripts/refresh_public_data.py
+make public-data
 ```
 
 This reads `outputs/app/results_summary.json` and `outputs/app/credibility_summary.json`, strips internal file paths, and writes the public snapshot.

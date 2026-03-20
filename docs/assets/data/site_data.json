@@ -7,7 +7,8 @@
     "year_max": 2024,
     "years": 25,
     "violent_rows": 75709,
-    "property_rows": 75709
+    "property_rows": 75709,
+    "crime_data_level": "county_fallback"
   },
   "sources": [
     {

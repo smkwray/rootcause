@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from povcrime.analysis import get_analysis_lanes
 from povcrime.config import get_config
 from povcrime.data.county_adjacency import CountyAdjacencyAdapter
 from povcrime.models.baseline_fe import BaselineFE
@@ -20,13 +21,6 @@ logging.basicConfig(
     format="%(asctime)s %(name)s %(levelname)s %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-_ESTIMANDS = [
-    {"label": "border_min_wage_violent", "treatment": "effective_min_wage", "outcome": "violent_crime_rate"},
-    {"label": "border_min_wage_property", "treatment": "effective_min_wage", "outcome": "property_crime_rate"},
-    {"label": "border_eitc_violent", "treatment": "state_eitc_rate", "outcome": "violent_crime_rate"},
-    {"label": "border_eitc_property", "treatment": "state_eitc_rate", "outcome": "property_crime_rate"},
-]
 
 _CONTROLS = [
     "unemployment_rate",
@@ -137,23 +131,24 @@ def main(argv: list[str] | None = None) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     rows: list[dict[str, object]] = []
 
-    for estimand in _ESTIMANDS:
-        controls = [col for col in _CONTROLS if col in panel.columns and col not in {estimand["treatment"], estimand["outcome"]}]
+    for lane in get_analysis_lanes(config=config, method="border"):
+        controls = [col for col in _CONTROLS if col in panel.columns and col not in {lane.treatment, lane.outcome}]
         pair_panel = build_border_pair_panel(
             panel=panel,
             pairs=pairs,
-            treatment=estimand["treatment"],
-            outcome=estimand["outcome"],
+            treatment=lane.treatment,
+            outcome=lane.outcome,
             controls=controls,
         )
         if pair_panel.empty:
-            logger.warning("Skipping %s: no usable border-pair rows.", estimand["label"])
+            logger.warning("Skipping %s: no usable border-pair rows.", lane.slug)
             continue
 
-        label_dir = output_dir / estimand["label"]
+        border_label = f"border_{lane.slug}"
+        label_dir = output_dir / border_label
         label_dir.mkdir(parents=True, exist_ok=True)
-        treatment_col = f"diff_{estimand['treatment']}"
-        outcome_col = f"diff_{estimand['outcome']}"
+        treatment_col = f"diff_{lane.treatment}"
+        outcome_col = f"diff_{lane.outcome}"
         control_cols = [f"diff_{col}" for col in controls]
 
         baseline = _fit_spec(
@@ -164,7 +159,7 @@ def main(argv: list[str] | None = None) -> None:
             output_dir=label_dir,
             spec_name="baseline",
         )
-        baseline["label"] = estimand["label"]
+        baseline["label"] = border_label
         rows.append(baseline)
 
         placebo_col = f"{treatment_col}_placebo_lead_{args.placebo_lead}"
@@ -184,12 +179,12 @@ def main(argv: list[str] | None = None) -> None:
             output_dir=label_dir,
             spec_name="placebo_lead",
         )
-        placebo["label"] = estimand["label"]
+        placebo["label"] = border_label
         rows.append(placebo)
 
         logger.info(
             "Border %s baseline coef=%.4f p=%.4f; placebo p=%.4f",
-            estimand["label"],
+            border_label,
             baseline["coefficient"],
             baseline["p_value"],
             placebo["p_value"],

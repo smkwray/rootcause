@@ -9,9 +9,11 @@ from pathlib import Path
 
 import pandas as pd
 
+from povcrime.analysis import get_analysis_lanes
 from povcrime.config import get_config
 from povcrime.models.dml import DMLEstimator
 from povcrime.models.overlap import compute_out_of_fold_predictions
+from povcrime.models.panel_ml import prepare_panel_ml_sample
 from povcrime.utils import ensure_dirs
 
 logging.basicConfig(
@@ -19,13 +21,6 @@ logging.basicConfig(
     format="%(asctime)s %(name)s %(levelname)s %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-_ESTIMANDS = [
-    {"label": "min_wage_violent", "treatment": "effective_min_wage", "outcome": "violent_crime_rate"},
-    {"label": "min_wage_property", "treatment": "effective_min_wage", "outcome": "property_crime_rate"},
-    {"label": "eitc_violent", "treatment": "state_eitc_rate", "outcome": "violent_crime_rate"},
-    {"label": "eitc_property", "treatment": "state_eitc_rate", "outcome": "property_crime_rate"},
-]
 
 _CONTROLS = [
     "unemployment_rate",
@@ -89,52 +84,69 @@ def main(argv: list[str] | None = None) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     rows: list[dict[str, object]] = []
 
-    for estimand in _ESTIMANDS:
+    for lane in get_analysis_lanes(config=config, method="support_trim"):
         controls = [col for col in _CONTROLS if col in panel.columns]
-        cols = [estimand["treatment"], estimand["outcome"], *controls]
+        cols = ["county_fips", "year", lane.treatment, lane.outcome, *controls]
         sub = panel[cols].dropna().reset_index(drop=True)
         if len(sub) < 200:
-            logger.warning("Skipping %s: only %d usable rows.", estimand["label"], len(sub))
+            logger.warning("Skipping %s: only %d usable rows.", lane.slug, len(sub))
             continue
 
         base = DMLEstimator(
             df=sub,
-            outcome=estimand["outcome"],
-            treatment=estimand["treatment"],
+            outcome=lane.outcome,
+            treatment=lane.treatment,
             controls=controls,
+            group_col="county_fips",
+            panel_mode="two_way_within",
+            entity_col="county_fips",
+            time_col="year",
             n_folds=args.n_folds,
         )
         base.fit()
         base_summary = base.summary()
 
+        overlap_sample = prepare_panel_ml_sample(
+            sub,
+            model_cols=[lane.treatment, *controls],
+            keep_cols=["county_fips", "year"],
+            panel_mode="two_way_within",
+            entity_col="county_fips",
+            time_col="year",
+        )
         preds = compute_out_of_fold_predictions(
-            sub[controls],
-            pd.to_numeric(sub[estimand["treatment"]], errors="coerce"),
+            overlap_sample[[*controls, "county_fips"]],
+            pd.to_numeric(overlap_sample[lane.treatment], errors="coerce"),
             n_splits=args.n_folds,
+            group_col="county_fips",
         )
         lower = float(pd.Series(preds).quantile(args.trim_quantile))
         upper = float(pd.Series(preds).quantile(1 - args.trim_quantile))
         trimmed = sub.loc[(preds >= lower) & (preds <= upper)].reset_index(drop=True)
         if len(trimmed) < 200:
-            logger.warning("Skipping trimmed DML for %s: only %d rows after trim.", estimand["label"], len(trimmed))
+            logger.warning("Skipping trimmed DML for %s: only %d rows after trim.", lane.slug, len(trimmed))
             continue
 
         trimmed_est = DMLEstimator(
             df=trimmed,
-            outcome=estimand["outcome"],
-            treatment=estimand["treatment"],
+            outcome=lane.outcome,
+            treatment=lane.treatment,
             controls=controls,
+            group_col="county_fips",
+            panel_mode="two_way_within",
+            entity_col="county_fips",
+            time_col="year",
             n_folds=args.n_folds,
         )
         trimmed_est.fit()
         trimmed_summary = trimmed_est.summary()
 
-        spec_dir = output_dir / estimand["label"]
+        spec_dir = output_dir / lane.slug
         spec_dir.mkdir(parents=True, exist_ok=True)
         (spec_dir / "support_trim_result.json").write_text(
             json.dumps(
                 {
-                    "label": estimand["label"],
+                    "label": lane.slug,
                     "trim_quantile": args.trim_quantile,
                     "predicted_treatment_lower": lower,
                     "predicted_treatment_upper": upper,
@@ -148,7 +160,7 @@ def main(argv: list[str] | None = None) -> None:
         )
         rows.append(
             {
-                "label": estimand["label"],
+                "label": lane.slug,
                 "trim_quantile": args.trim_quantile,
                 "n_base": int(base_summary["n_obs"]),
                 "n_trimmed": int(len(trimmed)),
@@ -160,7 +172,7 @@ def main(argv: list[str] | None = None) -> None:
         )
         logger.info(
             "Support trim %s: theta %.4f -> %.4f; n %d -> %d",
-            estimand["label"],
+            lane.slug,
             base_summary["theta"],
             trimmed_summary["theta"],
             base_summary["n_obs"],

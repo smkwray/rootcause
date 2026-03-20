@@ -16,7 +16,9 @@ import numpy as np
 import pandas as pd
 from doubleml import DoubleMLData, DoubleMLPLR
 from sklearn.ensemble import HistGradientBoostingRegressor
-from sklearn.model_selection import KFold
+from sklearn.model_selection import GroupKFold, KFold
+
+from povcrime.models.panel_ml import PanelMode, prepare_panel_ml_sample, validate_panel_mode
 
 logger = logging.getLogger(__name__)
 
@@ -46,16 +48,21 @@ class DMLEstimator:
         Name of the treatment variable column.
     controls : list[str]
         Names of control/confounding variable columns.
+    group_col : str or None
+        Optional grouping column used to keep repeated observations from
+        the same panel unit together in cross-fitting.
+    panel_mode : {"none", "two_way_within"}
+        Optional panel preprocessing mode applied before nuisance fitting.
     n_folds : int
         Number of cross-fitting folds (default 5).
     n_rep : int
         Number of repeated cross-fitting rounds (default 1).
     ml_g : sklearn estimator or None
         Learner for the outcome nuisance function ``g(X)``.
-        Defaults to ``GradientBoostingRegressor``.
+        Defaults to ``HistGradientBoostingRegressor``.
     ml_m : sklearn estimator or None
         Learner for the treatment nuisance function ``m(X)``.
-        Defaults to ``GradientBoostingRegressor``.
+        Defaults to ``HistGradientBoostingRegressor``.
     """
 
     def __init__(
@@ -64,6 +71,10 @@ class DMLEstimator:
         outcome: str,
         treatment: str,
         controls: list[str],
+        group_col: str | None = None,
+        panel_mode: PanelMode = "none",
+        entity_col: str = "county_fips",
+        time_col: str = "year",
         n_folds: int = 5,
         n_rep: int = 1,
         random_state: int = 42,
@@ -73,24 +84,49 @@ class DMLEstimator:
         self.outcome = outcome
         self.treatment = treatment
         self.controls = list(controls)
+        self.group_col = group_col
+        self.panel_mode = validate_panel_mode(panel_mode)
+        self.entity_col = entity_col
+        self.time_col = time_col
         self.n_folds = n_folds
         self.n_rep = n_rep
         self.random_state = random_state
 
+        if self.group_col is not None and self.group_col in self.controls:
+            raise ValueError("group_col must not also appear in controls.")
+
         # Validate columns
-        all_cols = {outcome, treatment} | set(self.controls)
-        missing = all_cols - set(df.columns)
+        all_cols = [outcome, treatment, *self.controls]
+        if self.group_col is not None:
+            all_cols.append(self.group_col)
+        if self.panel_mode != "none":
+            all_cols.extend([self.entity_col, self.time_col])
+        all_cols = list(dict.fromkeys(all_cols))
+        missing = set(all_cols) - set(df.columns)
         if missing:
             raise ValueError(f"Columns missing from DataFrame: {sorted(missing)}")
 
-        # Drop rows with missing values in any required column
-        self._df = df[list(all_cols)].dropna().reset_index(drop=True)
+        self._df = prepare_panel_ml_sample(
+            df,
+            model_cols=[self.outcome, self.treatment, *self.controls],
+            keep_cols=[col for col in all_cols if col not in {self.outcome, self.treatment, *self.controls}],
+            panel_mode=self.panel_mode,
+            entity_col=self.entity_col,
+            time_col=self.time_col,
+        )
 
         if len(self._df) < 2 * n_folds:
             raise ValueError(
                 f"Only {len(self._df)} complete observations available, "
                 f"need at least {2 * n_folds} for {n_folds}-fold cross-fitting."
             )
+        if self.group_col is not None:
+            n_groups = int(self._df[self.group_col].nunique(dropna=False))
+            if n_groups < self.n_folds:
+                raise ValueError(
+                    f"Only {n_groups} unique groups available in {self.group_col}, "
+                    f"need at least {self.n_folds} for grouped cross-fitting."
+                )
 
         # Default ML learners
         self._ml_g = ml_g or HistGradientBoostingRegressor(
@@ -137,7 +173,7 @@ class DMLEstimator:
             The fitted DoubleML model object.
         """
         self._dml_data = DoubleMLData(
-            self._df,
+            self._df[[self.outcome, self.treatment, *self.controls]],
             y_col=self.outcome,
             d_cols=self.treatment,
             x_cols=self.controls,
@@ -198,6 +234,10 @@ class DMLEstimator:
             "n_folds": self.n_folds,
             "n_rep": self.n_rep,
             "random_state": self.random_state,
+            "group_col": self.group_col,
+            "panel_mode": self.panel_mode,
+            "entity_col": self.entity_col if self.panel_mode != "none" else None,
+            "time_col": self.time_col if self.panel_mode != "none" else None,
         }
 
     def save_results(self, output_dir: str | Path) -> None:
@@ -232,10 +272,19 @@ class DMLEstimator:
             logger.debug("Could not save DoubleML summary table.", exc_info=True)
 
     def _build_sample_splitting(self) -> list[list[tuple[np.ndarray, np.ndarray]]]:
-        splitter = KFold(
-            n_splits=self.n_folds,
-            shuffle=True,
-            random_state=self.random_state,
-        )
-        folds = list(splitter.split(np.arange(len(self._df))))
-        return [folds for _ in range(self.n_rep)]
+        if self.group_col is None:
+            splitter = KFold(
+                n_splits=self.n_folds,
+                shuffle=True,
+                random_state=self.random_state,
+            )
+            folds = list(splitter.split(np.arange(len(self._df))))
+        else:
+            splitter = GroupKFold(n_splits=self.n_folds)
+            folds = list(
+                splitter.split(
+                    np.arange(len(self._df)),
+                    groups=self._df[self.group_col].to_numpy(),
+                )
+            )
+        return [list(folds) for _ in range(self.n_rep)]

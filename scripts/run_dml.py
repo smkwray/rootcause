@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from povcrime.analysis import get_analysis_lanes
 from povcrime.config import get_config
 from povcrime.models.causal_forest import CausalForestEstimator
 from povcrime.models.dml import DMLEstimator
@@ -25,40 +26,6 @@ logging.basicConfig(
     format="%(asctime)s %(name)s %(levelname)s %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-# Treatment-outcome pairs.
-_ESTIMANDS = [
-    {
-        "treatment": "effective_min_wage",
-        "outcome": "violent_crime_rate",
-        "label": "min_wage_violent",
-    },
-    {
-        "treatment": "effective_min_wage",
-        "outcome": "property_crime_rate",
-        "label": "min_wage_property",
-    },
-    {
-        "treatment": "state_eitc_rate",
-        "outcome": "violent_crime_rate",
-        "label": "eitc_violent",
-    },
-    {
-        "treatment": "state_eitc_rate",
-        "outcome": "property_crime_rate",
-        "label": "eitc_property",
-    },
-    {
-        "treatment": "tanf_benefit_3_person",
-        "outcome": "violent_crime_rate",
-        "label": "tanf_violent",
-    },
-    {
-        "treatment": "tanf_benefit_3_person",
-        "outcome": "property_crime_rate",
-        "label": "tanf_property",
-    },
-]
 
 # Controls for DML nuisance models.
 _CONTROLS = [
@@ -147,17 +114,17 @@ def main(argv: list[str] | None = None) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # ---- Run models for each treatment-outcome pair ----------------- #
-    for spec in _ESTIMANDS:
-        treatment = spec["treatment"]
-        outcome = spec["outcome"]
-        label = spec["label"]
+    for lane in get_analysis_lanes(config=config, method="dml"):
+        treatment = lane.treatment
+        outcome = lane.outcome
+        label = lane.slug
 
         if treatment not in panel.columns or outcome not in panel.columns:
             logger.warning("Skipping %s: missing columns.", label)
             continue
 
         controls_avail = [c for c in _CONTROLS if c in panel.columns]
-        cols_needed = list({treatment, outcome} | set(controls_avail))
+        cols_needed = ["county_fips", "year", outcome, treatment, *controls_avail]
         sub = panel[cols_needed].dropna().reset_index(drop=True)
 
         if len(sub) < 200:
@@ -183,6 +150,10 @@ def main(argv: list[str] | None = None) -> None:
                 outcome=outcome,
                 treatment=treatment,
                 controls=controls_avail,
+                group_col="county_fips",
+                panel_mode="two_way_within",
+                entity_col="county_fips",
+                time_col="year",
                 n_folds=args.n_folds,
             )
             dml.fit()

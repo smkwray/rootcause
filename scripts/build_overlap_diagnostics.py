@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from povcrime.analysis import get_analysis_lanes
 from povcrime.config import get_config
 from povcrime.models.overlap import build_continuous_treatment_support_diagnostics
 from povcrime.utils import ensure_dirs
@@ -17,39 +18,6 @@ logging.basicConfig(
     format="%(asctime)s %(name)s %(levelname)s %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-_ESTIMANDS = [
-    {
-        "treatment": "effective_min_wage",
-        "outcome": "violent_crime_rate",
-        "label": "min_wage_violent",
-    },
-    {
-        "treatment": "effective_min_wage",
-        "outcome": "property_crime_rate",
-        "label": "min_wage_property",
-    },
-    {
-        "treatment": "state_eitc_rate",
-        "outcome": "violent_crime_rate",
-        "label": "eitc_violent",
-    },
-    {
-        "treatment": "state_eitc_rate",
-        "outcome": "property_crime_rate",
-        "label": "eitc_property",
-    },
-    {
-        "treatment": "tanf_benefit_3_person",
-        "outcome": "violent_crime_rate",
-        "label": "tanf_violent",
-    },
-    {
-        "treatment": "tanf_benefit_3_person",
-        "outcome": "property_crime_rate",
-        "label": "tanf_property",
-    },
-]
 
 _CONTROLS = [
     "unemployment_rate",
@@ -86,19 +54,23 @@ def main(argv: list[str] | None = None) -> None:
     output_dir = config.output_dir / "overlap"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    for spec in _ESTIMANDS:
+    for lane in get_analysis_lanes(config=config, method="overlap"):
         controls = [col for col in _CONTROLS if col in panel.columns]
-        cols_needed = [spec["treatment"], spec["outcome"], *controls]
+        cols_needed = ["county_fips", "year", lane.treatment, lane.outcome, *controls]
         sub = panel[cols_needed].dropna().reset_index(drop=True)
         summary = build_continuous_treatment_support_diagnostics(
             df=sub,
-            treatment=spec["treatment"],
+            treatment=lane.treatment,
             controls=controls,
-            output_dir=output_dir / spec["label"],
+            output_dir=output_dir / lane.slug,
+            group_col="county_fips",
+            panel_mode="two_way_within",
+            entity_col="county_fips",
+            time_col="year",
         )
         logger.info(
             "Support diagnostics %s: OOF R2=%.3f, max_abs_smd=%.3f",
-            spec["label"],
+            lane.slug,
             summary["oof_r2"],
             summary["max_abs_smd"],
         )

@@ -16,6 +16,32 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def _ensure_fbi_county_fallback(adapter, config) -> None:
+    """Build the county-level FBI fallback if the adapter lacks one."""
+    if adapter.has_county_fallback_file():
+        logger.info("FBI county fallback already present; skipping rebuild.")
+        return
+
+    from povcrime.data.fbi_reta_master import build_county_fallback
+
+    output_path = config.raw_dir / "fbi_crime" / "county_crime.parquet"
+    logger.info(
+        "No county-level FBI file found. Building fallback at %s.",
+        output_path,
+    )
+    build_county_fallback(
+        start_year=config.start_year,
+        end_year=config.end_year,
+        raw_dir=config.raw_dir / "fbi_crime",
+        output_path=output_path,
+    )
+    if not adapter.has_county_fallback_file():
+        raise RuntimeError(
+            "FBI county fallback build completed without producing a "
+            "supported county-level file."
+        )
+
+
 def main(argv: list[str] | None = None) -> None:
     """Entry point for the download-data script."""
     parser = argparse.ArgumentParser(
@@ -80,6 +106,8 @@ def main(argv: list[str] | None = None) -> None:
         logger.info("=== Downloading: %s ===", name)
         try:
             adapter.download()
+            if name == "fbi_crime":
+                _ensure_fbi_county_fallback(adapter, config)
             logger.info("=== %s download complete ===", name)
         except Exception:
             logger.exception("Failed to download %s.", name)

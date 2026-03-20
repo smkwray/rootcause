@@ -1,17 +1,177 @@
-# configs/project.yaml — Default project configuration
+# configs/project.yaml — Authoritative analysis configuration
 
 study_name: "Causal Poverty-Crime Analysis"
 start_year: 2000
 end_year: 2024
 
-treatments:
-  - min_wage
-  - snap_policy
-
-outcomes:
-  - violent_crime_rate
-  - property_crime_rate
-
 panel:
   unit: "county_fips x year"
-  cluster_var: state_fips
+  cluster_var: "state_fips"
+
+analysis_lanes:
+  - slug: "min_wage_violent"
+    title: "Minimum Wage -> Violent Crime"
+    family: "minimum_wage"
+    treatment: "effective_min_wage"
+    outcome: "violent_crime_rate"
+    tier: "primary"
+    event_col: "min_wage_event_year"
+    event_threshold: 0.01
+    methods:
+      - "baseline"
+      - "dml"
+      - "overlap"
+      - "support_trim"
+      - "robustness"
+      - "staggered"
+      - "border"
+      - "falsification"
+
+  - slug: "min_wage_property"
+    title: "Minimum Wage -> Property Crime"
+    family: "minimum_wage"
+    treatment: "effective_min_wage"
+    outcome: "property_crime_rate"
+    tier: "primary"
+    event_col: "min_wage_event_year"
+    event_threshold: 0.01
+    methods:
+      - "baseline"
+      - "dml"
+      - "overlap"
+      - "support_trim"
+      - "robustness"
+      - "staggered"
+      - "border"
+      - "falsification"
+
+  - slug: "snap_bbce_violent"
+    title: "SNAP BBCE -> Violent Crime"
+    family: "snap_bbce"
+    treatment: "broad_based_cat_elig"
+    outcome: "violent_crime_rate"
+    tier: "exploratory"
+    event_col: "snap_bbce_event_year"
+    event_threshold: 0.5
+    methods:
+      - "baseline"
+      - "staggered"
+
+  - slug: "snap_bbce_property"
+    title: "SNAP BBCE -> Property Crime"
+    family: "snap_bbce"
+    treatment: "broad_based_cat_elig"
+    outcome: "property_crime_rate"
+    tier: "exploratory"
+    event_col: "snap_bbce_event_year"
+    event_threshold: 0.5
+    methods:
+      - "baseline"
+      - "staggered"
+
+  - slug: "eitc_violent"
+    title: "State EITC Rate -> Violent Crime"
+    family: "state_eitc"
+    treatment: "state_eitc_rate"
+    outcome: "violent_crime_rate"
+    tier: "secondary"
+    event_col: "eitc_event_year"
+    event_threshold: 0.01
+    methods:
+      - "baseline"
+      - "dml"
+      - "overlap"
+      - "support_trim"
+      - "robustness"
+      - "border"
+      - "falsification"
+
+  - slug: "eitc_property"
+    title: "State EITC Rate -> Property Crime"
+    family: "state_eitc"
+    treatment: "state_eitc_rate"
+    outcome: "property_crime_rate"
+    tier: "secondary"
+    event_col: "eitc_event_year"
+    event_threshold: 0.01
+    methods:
+      - "baseline"
+      - "dml"
+      - "overlap"
+      - "support_trim"
+      - "robustness"
+      - "border"
+      - "falsification"
+
+  - slug: "tanf_violent"
+    title: "TANF Benefit -> Violent Crime"
+    family: "tanf"
+    treatment: "tanf_benefit_3_person"
+    outcome: "violent_crime_rate"
+    tier: "exploratory"
+    methods:
+      - "baseline"
+      - "dml"
+      - "overlap"
+      - "robustness"
+
+  - slug: "tanf_property"
+    title: "TANF Benefit -> Property Crime"
+    family: "tanf"
+    treatment: "tanf_benefit_3_person"
+    outcome: "property_crime_rate"
+    tier: "exploratory"
+    methods:
+      - "baseline"
+      - "dml"
+      - "overlap"
+      - "robustness"
+
+bidirectional_lanes:
+  - slug: "poverty_to_violent"
+    title: "Poverty -> Violent Crime"
+    family: "bidirectional"
+    treatment: "poverty_rate"
+    outcome: "violent_crime_rate"
+    tier: "exploratory"
+    methods:
+      - "baseline"
+      - "dml"
+      - "overlap"
+      - "robustness"
+
+  - slug: "poverty_to_property"
+    title: "Poverty -> Property Crime"
+    family: "bidirectional"
+    treatment: "poverty_rate"
+    outcome: "property_crime_rate"
+    tier: "exploratory"
+    methods:
+      - "baseline"
+      - "dml"
+      - "overlap"
+      - "robustness"
+
+  - slug: "violent_to_poverty"
+    title: "Violent Crime -> Poverty"
+    family: "bidirectional"
+    treatment: "violent_crime_rate"
+    outcome: "poverty_rate"
+    tier: "exploratory"
+    methods:
+      - "baseline"
+      - "dml"
+      - "overlap"
+      - "robustness"
+
+  - slug: "property_to_poverty"
+    title: "Property Crime -> Poverty"
+    family: "bidirectional"
+    treatment: "property_crime_rate"
+    outcome: "poverty_rate"
+    tier: "exploratory"
+    methods:
+      - "baseline"
+      - "dml"
+      - "overlap"
+      - "robustness"

@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from povcrime.analysis import get_analysis_lanes, get_event_definitions
 from povcrime.config import get_config
 from povcrime.models.policy_events import compute_first_treatment_event_year
 from povcrime.models.staggered_att import StaggeredEventStudy
@@ -18,33 +19,6 @@ logging.basicConfig(
     format="%(asctime)s %(name)s %(levelname)s %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-_ESTIMANDS = [
-    {
-        "label": "min_wage_violent",
-        "treatment": "effective_min_wage",
-        "outcome": "violent_crime_rate",
-        "event_col": "min_wage_event_year",
-    },
-    {
-        "label": "min_wage_property",
-        "treatment": "effective_min_wage",
-        "outcome": "property_crime_rate",
-        "event_col": "min_wage_event_year",
-    },
-    {
-        "label": "snap_bbce_violent",
-        "treatment": "broad_based_cat_elig",
-        "outcome": "violent_crime_rate",
-        "event_col": "snap_bbce_event_year",
-    },
-    {
-        "label": "snap_bbce_property",
-        "treatment": "broad_based_cat_elig",
-        "outcome": "property_crime_rate",
-        "event_col": "snap_bbce_event_year",
-    },
-]
 
 _CONTROLS = [
     "unemployment_rate",
@@ -78,38 +52,40 @@ def main(argv: list[str] | None = None) -> None:
     if "low_coverage" in panel.columns:
         panel = panel.loc[~panel["low_coverage"]].copy()
 
-    event_defs = [
-        {"treatment_col": "effective_min_wage", "output_col": "min_wage_event_year", "change_threshold": 0.01},
-        {"treatment_col": "broad_based_cat_elig", "output_col": "snap_bbce_event_year", "change_threshold": 0.5},
-    ]
+    event_defs = get_event_definitions(config=config, method="staggered")
     for event_def in event_defs:
-        if event_def["treatment_col"] in panel.columns and event_def["output_col"] not in panel.columns:
-            panel = compute_first_treatment_event_year(panel, **event_def)
+        if event_def.treatment_col in panel.columns and event_def.output_col not in panel.columns:
+            panel = compute_first_treatment_event_year(
+                panel,
+                treatment_col=event_def.treatment_col,
+                output_col=event_def.output_col,
+                change_threshold=event_def.change_threshold,
+            )
 
     output_dir = config.output_dir / "staggered"
     output_dir.mkdir(parents=True, exist_ok=True)
     rows: list[dict[str, object]] = []
 
-    for estimand in _ESTIMANDS:
-        if any(col not in panel.columns for col in [estimand["treatment"], estimand["outcome"], estimand["event_col"]]):
-            logger.warning("Skipping %s: missing required columns.", estimand["label"])
+    for lane in get_analysis_lanes(config=config, method="staggered"):
+        if any(col not in panel.columns for col in [lane.treatment, lane.outcome, lane.event_col]):
+            logger.warning("Skipping %s: missing required columns.", lane.slug)
             continue
         controls = [col for col in _CONTROLS if col in panel.columns]
         cols_needed = [
             "county_fips",
             "year",
             "state_fips",
-            estimand["outcome"],
-            estimand["event_col"],
+            lane.outcome,
+            lane.event_col,
             *controls,
         ]
-        sub = panel[cols_needed].dropna(subset=[estimand["outcome"]]).copy()
-        spec_dir = output_dir / estimand["label"]
+        sub = panel[cols_needed].dropna(subset=[lane.outcome]).copy()
+        spec_dir = output_dir / lane.slug
         try:
             model = StaggeredEventStudy(
                 df=sub,
-                outcome=estimand["outcome"],
-                event_col=estimand["event_col"],
+                outcome=lane.outcome,
+                event_col=str(lane.event_col),
                 controls=controls,
                 leads=4,
                 lags=6,
@@ -119,9 +95,9 @@ def main(argv: list[str] | None = None) -> None:
             pretrend = model.pretrend_test()
             rows.append(
                 {
-                    "label": estimand["label"],
-                    "outcome": estimand["outcome"],
-                    "event_col": estimand["event_col"],
+                    "label": lane.slug,
+                    "outcome": lane.outcome,
+                    "event_col": lane.event_col,
                     "n_coefs": int(len(model.coef_table())),
                     "n_pre_coefs": int(pretrend["n_pre_coefs"]),
                     "pretrend_p_value": float(pretrend["p_value"]),
@@ -131,12 +107,12 @@ def main(argv: list[str] | None = None) -> None:
             )
             logger.info(
                 "Staggered ATT %s pretrend p=%.4f pass=%s",
-                estimand["label"],
+                lane.slug,
                 pretrend["p_value"],
                 pretrend["pass"],
             )
         except Exception:
-            logger.exception("Staggered ATT failed for %s.", estimand["label"])
+            logger.exception("Staggered ATT failed for %s.", lane.slug)
 
     if not rows:
         raise SystemExit("No staggered ATT models were estimated.")

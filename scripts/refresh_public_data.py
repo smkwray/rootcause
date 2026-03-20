@@ -13,6 +13,10 @@ import math
 import sys
 from pathlib import Path
 
+from povcrime.analysis import get_bidirectional_lane
+from povcrime.config import get_config
+from povcrime.reports.contracts import load_credibility_summary, load_results_summary
+
 ROOT = Path(__file__).resolve().parent.parent
 OUTPUTS = ROOT / "outputs" / "app"
 DEST = ROOT / "docs" / "assets" / "data"
@@ -58,6 +62,7 @@ STATUS_DESCRIPTIONS = {
 
 
 def build_site_data():
+    config = get_config()
     results_path = OUTPUTS / "results_summary.json"
     credibility_path = OUTPUTS / "credibility_summary.json"
 
@@ -66,8 +71,8 @@ def build_site_data():
             print(f"Missing required file: {p}", file=sys.stderr)
             sys.exit(1)
 
-    results = json.loads(results_path.read_text())
-    credibility = json.loads(credibility_path.read_text())
+    results = load_results_summary(results_path)
+    credibility = load_credibility_summary(credibility_path)
 
     # Build credibility lookup by slug
     cred_lookup = {lane["slug"]: lane for lane in credibility.get("lanes", [])}
@@ -160,18 +165,20 @@ def build_site_data():
         lanes.append(lane)
 
     # Bidirectional poverty-crime (exploratory)
-    bidir = results.get("exploratory", {}).get("bidirectional_poverty_crime", {})
+    exploratory = results.get("exploratory", {}) or {}
+    bidir = exploratory.get("bidirectional_poverty_crime") or {}
     bidir_public = []
     for est in bidir.get("estimands", []):
+        lane = get_bidirectional_lane(est["label"], config=config)
         fe = est.get("baseline_fe", {})
         dml = est.get("dml", {})
         ovlp = est.get("overlap", {})
 
         entry = {
             "label": est["label"],
-            "title": est["title"],
-            "treatment": est.get("treatment", ""),
-            "outcome": est.get("outcome", ""),
+            "title": lane.title if lane is not None else est["title"],
+            "treatment": lane.treatment if lane is not None else est.get("treatment", ""),
+            "outcome": lane.outcome if lane is not None else est.get("outcome", ""),
             "headline": est.get("headline", ""),
             "fe_coefficient": round(fe.get("coefficient", 0), 4),
             "fe_p_value": round(fe.get("p_value", 1), 4),
@@ -214,6 +221,7 @@ def build_site_data():
             "years": panel["year_max"] - panel["year_min"] + 1,
             "violent_rows": panel["violent_rows"],
             "property_rows": panel["property_rows"],
+            "crime_data_level": panel.get("crime_data_level", "missing"),
         },
         "sources": sources,
         "lanes": lanes,
@@ -227,28 +235,7 @@ def build_site_data():
     out_path.write_text(data_json + "\n")
     print(f"Wrote {out_path.relative_to(ROOT)}")
 
-    # Embed data inline in index.html
-    index_path = ROOT / "docs" / "index.html"
-    if index_path.exists():
-        html = index_path.read_text()
-        marker = "%%SITE_DATA%%"
-        if marker in html:
-            # Replace marker with actual data
-            html = html.replace(marker, data_json)
-            index_path.write_text(html)
-            print(f"Embedded data in {index_path.relative_to(ROOT)}")
-        else:
-            # Replace existing inline data between script tags
-            import re
-
-            pattern = r'(<script id="site-data" type="application/json">)(.*?)(</script>)'
-            replacement = r"\1" + data_json.replace("\\", "\\\\") + r"\3"
-            new_html, count = re.subn(pattern, replacement, html, flags=re.DOTALL)
-            if count > 0:
-                index_path.write_text(new_html)
-                print(f"Updated inline data in {index_path.relative_to(ROOT)}")
-            else:
-                print("Warning: could not find inline data placeholder in index.html")
+    print("Site shell reads docs/assets/data/site_data.json directly.")
 
 
 if __name__ == "__main__":

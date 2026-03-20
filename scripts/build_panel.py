@@ -38,6 +38,14 @@ def main(argv: list[str] | None = None) -> None:
         default=0.75,
         help="Minimum source coverage share for quality flagging (default: 0.75).",
     )
+    parser.add_argument(
+        "--allow-missing-county-crime",
+        action="store_true",
+        help=(
+            "Allow panel construction to continue without county-level FBI "
+            "crime data. The default build requires county-level crime."
+        ),
+    )
     args = parser.parse_args(argv)
 
     config = get_config()
@@ -80,6 +88,7 @@ def main(argv: list[str] | None = None) -> None:
     }
 
     sources: dict[str, pd.DataFrame] = {}
+    fbi_county_available = False
     for name, adapter in adapters.items():
         logger.info("Loading source: %s", name)
         try:
@@ -87,6 +96,8 @@ def main(argv: list[str] | None = None) -> None:
             if not args.skip_validation:
                 df = adapter.validate(df)
             sources[name] = df
+            if name == "fbi_crime":
+                fbi_county_available = adapter.has_county_fallback_file()
             logger.info(
                 "Loaded %s: %d rows, %d columns.",
                 name,
@@ -107,6 +118,15 @@ def main(argv: list[str] | None = None) -> None:
         logger.error(
             "SAIPE data is required as the panel spine. "
             "Run download_data.py --sources saipe first."
+        )
+        raise SystemExit(1)
+
+    if not args.allow_missing_county_crime and not fbi_county_available:
+        logger.error(
+            "FBI county-level crime data are required for the default panel "
+            "build. Run download_data.py with FBI enabled so the county "
+            "fallback is built, or re-run with --allow-missing-county-crime "
+            "to continue without crime outcomes."
         )
         raise SystemExit(1)
 

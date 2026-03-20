@@ -1,0 +1,2 @@
+variable,coefficient,std_error,t_stat,p_value,ci_lower,ci_upper
+effective_min_wage,-0.22,0.19,-1.16,0.280,-0.64,0.20

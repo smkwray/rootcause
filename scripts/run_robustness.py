@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from povcrime.analysis import get_analysis_lanes
 from povcrime.config import get_config
 from povcrime.models.baseline_fe import BaselineFE
 from povcrime.models.robustness import (
@@ -22,39 +23,6 @@ logging.basicConfig(
     format="%(asctime)s %(name)s %(levelname)s %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-_ESTIMANDS = [
-    {
-        "treatment": "effective_min_wage",
-        "outcome": "violent_crime_rate",
-        "label": "min_wage_violent",
-    },
-    {
-        "treatment": "effective_min_wage",
-        "outcome": "property_crime_rate",
-        "label": "min_wage_property",
-    },
-    {
-        "treatment": "state_eitc_rate",
-        "outcome": "violent_crime_rate",
-        "label": "eitc_violent",
-    },
-    {
-        "treatment": "state_eitc_rate",
-        "outcome": "property_crime_rate",
-        "label": "eitc_property",
-    },
-    {
-        "treatment": "tanf_benefit_3_person",
-        "outcome": "violent_crime_rate",
-        "label": "tanf_violent",
-    },
-    {
-        "treatment": "tanf_benefit_3_person",
-        "outcome": "property_crime_rate",
-        "label": "tanf_property",
-    },
-]
 
 _CONTROLS = [
     "unemployment_rate",
@@ -310,20 +278,20 @@ def main(argv: list[str] | None = None) -> None:
     )
 
     rows: list[dict[str, object]] = []
-    for estimand in _ESTIMANDS:
+    for lane in get_analysis_lanes(config=config, method="robustness"):
         for spec in specs:
             logger.info(
                 "Running robustness spec %s for %s.",
                 spec["name"],
-                estimand["label"],
+                lane.slug,
             )
             try:
                 row = _run_spec(
                     panel=panel,
                     spec=spec,
-                    treatment=str(estimand["treatment"]),
-                    outcome=str(estimand["outcome"]),
-                    label=str(estimand["label"]),
+                    treatment=lane.treatment,
+                    outcome=lane.outcome,
+                    label=lane.slug,
                     controls=_CONTROLS,
                     output_dir=output_dir,
                     placebo_lead=args.placebo_lead,
@@ -333,14 +301,14 @@ def main(argv: list[str] | None = None) -> None:
                 logger.exception(
                     "Robustness spec %s failed for %s.",
                     spec["name"],
-                    estimand["label"],
+                    lane.slug,
                 )
                 rows.append(
                     {
-                        "label": estimand["label"],
-                        "outcome": estimand["outcome"],
+                        "label": lane.slug,
+                        "outcome": lane.outcome,
                         "spec": spec["name"],
-                        "treatment_variable": estimand["treatment"],
+                        "treatment_variable": lane.treatment,
                         "sample_rows": 0,
                         "n_obs_used": 0,
                         "n_entities": 0,

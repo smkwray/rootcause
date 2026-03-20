@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from povcrime.analysis import get_falsification_treatment_specs
 from povcrime.config import get_config
 from povcrime.models.baseline_fe import BaselineFE
 from povcrime.models.robustness import extract_treatment_row
@@ -18,11 +19,6 @@ logging.basicConfig(
     format="%(asctime)s %(name)s %(levelname)s %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-_TREATMENTS = [
-    {"label": "min_wage", "treatment": "effective_min_wage"},
-    {"label": "eitc", "treatment": "state_eitc_rate"},
-]
 
 _NEGATIVE_OUTCOMES = [
     "pct_over_65",
@@ -65,7 +61,7 @@ def main(argv: list[str] | None = None) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     rows: list[dict[str, object]] = []
 
-    for treatment_spec in _TREATMENTS:
+    for treatment_spec in get_falsification_treatment_specs(config=config):
         for outcome in _NEGATIVE_OUTCOMES:
             if treatment_spec["treatment"] not in panel.columns or outcome not in panel.columns:
                 continue

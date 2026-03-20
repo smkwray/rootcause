@@ -1,0 +1,3 @@
+county_fips,state_fips,year,violent_crime_count,property_crime_count,population_covered,agencies_reporting,reported_month_share,coverage_pass_flag
+01001,01,2020,120,900,54000,3,1.0,True
+01003,01,2020,150,1100,61000,4,1.0,True

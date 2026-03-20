@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from povcrime.analysis import get_bidirectional_lanes
 from povcrime.config import get_config
 from povcrime.models.baseline_fe import BaselineFE
 from povcrime.models.dml import DMLEstimator
@@ -25,33 +26,6 @@ logging.basicConfig(
     format="%(asctime)s %(name)s %(levelname)s %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-_ESTIMANDS = [
-    {
-        "label": "poverty_to_violent",
-        "title": "Poverty -> Violent Crime",
-        "treatment": "poverty_rate",
-        "outcome": "violent_crime_rate",
-    },
-    {
-        "label": "poverty_to_property",
-        "title": "Poverty -> Property Crime",
-        "treatment": "poverty_rate",
-        "outcome": "property_crime_rate",
-    },
-    {
-        "label": "violent_to_poverty",
-        "title": "Violent Crime -> Poverty",
-        "treatment": "violent_crime_rate",
-        "outcome": "poverty_rate",
-    },
-    {
-        "label": "property_to_poverty",
-        "title": "Property Crime -> Poverty",
-        "treatment": "property_crime_rate",
-        "outcome": "poverty_rate",
-    },
-]
 
 _CONTROLS = [
     "unemployment_rate",
@@ -141,19 +115,19 @@ def _build_shifted_sample(
 def _run_baseline_fe(
     *,
     panel: pd.DataFrame,
-    spec: dict[str, str],
+    lane,
     controls: list[str],
     output_dir: Path,
 ) -> dict[str, object]:
     sub, treatment_col, outcome_col, controls_used = _build_shifted_sample(
         panel,
-        treatment=spec["treatment"],
-        outcome=spec["outcome"],
+        treatment=lane.treatment,
+        outcome=lane.outcome,
         controls=controls,
         lag=1,
     )
     if len(sub) < 200:
-        raise ValueError(f"Only {len(sub)} usable rows for baseline {spec['label']}.")
+        raise ValueError(f"Only {len(sub)} usable rows for baseline {lane.slug}.")
 
     model = BaselineFE(
         df=sub,
@@ -162,7 +136,7 @@ def _run_baseline_fe(
         controls=controls_used,
     )
     result = model.fit()
-    spec_dir = output_dir / "baseline" / spec["label"]
+    spec_dir = output_dir / "baseline" / lane.slug
     model.save_results(spec_dir)
     coef = extract_treatment_row(model.summary_table(), treatment=treatment_col)
     return {
@@ -181,7 +155,7 @@ def _run_baseline_fe(
 def _run_robustness(
     *,
     panel: pd.DataFrame,
-    spec: dict[str, str],
+    lane,
     controls: list[str],
     output_dir: Path,
 ) -> list[dict[str, object]]:
@@ -190,8 +164,8 @@ def _run_robustness(
         filtered = _coverage_filter(panel, mode=str(robustness["coverage"]))
         sub, treatment_col, outcome_col, controls_used = _build_shifted_sample(
             filtered,
-            treatment=spec["treatment"],
-            outcome=spec["outcome"],
+            treatment=lane.treatment,
+            outcome=lane.outcome,
             controls=controls,
             lag=robustness.get("lag"),
             lead=robustness.get("lead"),
@@ -201,7 +175,7 @@ def _run_robustness(
             logger.warning(
                 "Skipping bidirectional robustness %s for %s: only %d rows.",
                 robustness["name"],
-                spec["label"],
+                lane.slug,
                 len(sub),
             )
             continue
@@ -212,12 +186,13 @@ def _run_robustness(
             controls=controls_used,
         )
         result = model.fit()
-        spec_dir = output_dir / "robustness" / spec["label"] / str(robustness["name"])
+        spec_dir = output_dir / "robustness" / lane.slug / str(robustness["name"])
         model.save_results(spec_dir)
         coef = extract_treatment_row(model.summary_table(), treatment=treatment_col)
         rows.append(
             {
-                "label": spec["label"],
+                "label": lane.slug,
+                "title": lane.title,
                 "spec": robustness["name"],
                 "treatment_variable": treatment_col,
                 "sample_rows": int(len(sub)),
@@ -236,43 +211,51 @@ def _run_robustness(
 def _run_dml_and_overlap(
     *,
     panel: pd.DataFrame,
-    spec: dict[str, str],
+    lane,
     controls: list[str],
     output_dir: Path,
     n_folds: int,
 ) -> tuple[dict[str, object] | None, dict[str, object] | None]:
     sub, treatment_col, outcome_col, controls_used = _build_shifted_sample(
         panel,
-        treatment=spec["treatment"],
-        outcome=spec["outcome"],
+        treatment=lane.treatment,
+        outcome=lane.outcome,
         controls=controls,
         lag=1,
     )
     dml_summary: dict[str, object] | None = None
     overlap_summary: dict[str, object] | None = None
     if len(sub) < 200:
-        logger.warning("Skipping bidirectional ML for %s: only %d rows.", spec["label"], len(sub))
+        logger.warning("Skipping bidirectional ML for %s: only %d rows.", lane.slug, len(sub))
         return dml_summary, overlap_summary
 
-    dml_dir = output_dir / "dml" / spec["label"]
+    dml_dir = output_dir / "dml" / lane.slug
     dml_dir.mkdir(parents=True, exist_ok=True)
     dml = DMLEstimator(
         df=sub,
         outcome=outcome_col,
         treatment=treatment_col,
         controls=controls_used,
+        group_col="county_fips",
+        panel_mode="two_way_within",
+        entity_col="county_fips",
+        time_col="year",
         n_folds=n_folds,
     )
     dml.fit()
     dml.save_results(dml_dir)
     dml_summary = dml.summary()
 
-    overlap_dir = output_dir / "overlap" / spec["label"]
+    overlap_dir = output_dir / "overlap" / lane.slug
     overlap_summary = build_continuous_treatment_support_diagnostics(
         df=sub,
         treatment=treatment_col,
         controls=controls_used,
         output_dir=overlap_dir,
+        group_col="county_fips",
+        panel_mode="two_way_within",
+        entity_col="county_fips",
+        time_col="year",
     )
     return dml_summary, overlap_summary
 
@@ -332,7 +315,7 @@ def _write_outputs(
         "# Bidirectional Poverty-Crime Summary",
         "",
         "- Scope: exploratory but designed to compare `poverty -> crime` and `crime -> poverty` on more equal footing.",
-        "- Design: county and year fixed effects, one-year lagged treatments, shared control set, FE robustness checks, DML, and continuous-treatment support diagnostics.",
+        "- Design: county and year fixed effects, one-year lagged treatments, shared control set, FE robustness checks, county-grouped cross-fitting, two-way within residualization for ML steps, and continuous-treatment support diagnostics.",
         "",
         "| Lane | FE Coef | FE p-value | DML Theta | DML p-value | Max Abs SMD | Headline |",
         "|------|---------|------------|-----------|-------------|-------------|----------|",
@@ -376,36 +359,36 @@ def main(argv: list[str] | None = None) -> None:
 
     high_coverage_panel = _coverage_filter(panel, mode="high")
     rows: list[dict[str, object]] = []
-    for spec in _ESTIMANDS:
-        if spec["treatment"] not in panel.columns or spec["outcome"] not in panel.columns:
-            logger.warning("Skipping %s: missing columns.", spec["label"])
+    for lane in get_bidirectional_lanes(config=config):
+        if lane.treatment not in panel.columns or lane.outcome not in panel.columns:
+            logger.warning("Skipping %s: missing columns.", lane.slug)
             continue
-        controls = _available_controls(panel, treatment=spec["treatment"], outcome=spec["outcome"])
+        controls = _available_controls(panel, treatment=lane.treatment, outcome=lane.outcome)
         baseline_fe = _run_baseline_fe(
             panel=high_coverage_panel,
-            spec=spec,
+            lane=lane,
             controls=controls,
             output_dir=output_dir,
         )
         robustness = _run_robustness(
             panel=panel,
-            spec=spec,
+            lane=lane,
             controls=controls,
             output_dir=output_dir,
         )
         dml_summary, overlap_summary = _run_dml_and_overlap(
             panel=high_coverage_panel,
-            spec=spec,
+            lane=lane,
             controls=controls,
             output_dir=output_dir,
             n_folds=args.n_folds,
         )
         rows.append(
             {
-                "label": spec["label"],
-                "title": spec["title"],
-                "treatment": spec["treatment"],
-                "outcome": spec["outcome"],
+                "label": lane.slug,
+                "title": lane.title,
+                "treatment": lane.treatment,
+                "outcome": lane.outcome,
                 "baseline_fe": baseline_fe,
                 "dml": dml_summary,
                 "overlap": overlap_summary,
@@ -415,7 +398,7 @@ def main(argv: list[str] | None = None) -> None:
         )
         logger.info(
             "Bidirectional %s: FE coef=%.4f p=%.4f; DML p=%s",
-            spec["label"],
+            lane.slug,
             baseline_fe["coefficient"],
             baseline_fe["p_value"],
             "n/a" if dml_summary is None else f"{dml_summary['p_value']:.4f}",
@@ -430,6 +413,8 @@ def main(argv: list[str] | None = None) -> None:
             "baseline_timing": "one-year lagged treatment",
             "robustness_specs": [spec["name"] for spec in _ROBUSTNESS_SPECS],
             "coverage_rule": "baseline FE, DML, and overlap use high-coverage rows; robustness also includes all-rows and strict-coverage samples",
+            "dml_panel_mode": "two_way_within",
+            "cross_fitting": "county_grouped",
         },
         "estimands": rows,
     }

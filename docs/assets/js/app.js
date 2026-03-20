@@ -319,7 +319,7 @@
       out += '<th>Method</th><th>Estimate</th><th>p-value</th><th>95% CI</th>';
       out += '</tr></thead><tbody>';
 
-      out += buildEstimateRow("FE", row.fe_coefficient, row.fe_p_value, row.fe_ci_lower, row.fe_ci_upper);
+      out += buildEstimateRow("TWFE", row.fe_coefficient, row.fe_p_value, row.fe_ci_lower, row.fe_ci_upper);
       out += buildEstimateRow("DML", row.dml_theta, row.dml_p_value, row.dml_ci_lower, row.dml_ci_upper);
 
       out += '</tbody></table>';
@@ -360,10 +360,10 @@
     var feS = row.fe_p_value < 0.05;
     var dmlS = row.dml_p_value < 0.05;
 
-    if (feS && dmlS) parts.push("Both FE and DML detect a statistically significant association.");
-    else if (dmlS) parts.push("FE does not detect a clear association, but DML is statistically significant.");
-    else if (feS) parts.push("FE detects an association, but DML does not confirm it.");
-    else parts.push("Neither FE nor DML detects a clear association.");
+    if (feS && dmlS) parts.push("Both TWFE and DML detect a statistically significant association.");
+    else if (dmlS) parts.push("TWFE does not detect a clear association, but DML is statistically significant.");
+    else if (feS) parts.push("TWFE detects an association, but DML does not confirm it.");
+    else parts.push("Neither TWFE nor DML detects a clear association.");
 
     if (row.placebo_lead) {
       if (row.placebo_lead.p_value < 0.05) {

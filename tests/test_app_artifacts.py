@@ -78,7 +78,22 @@ def test_build_app_artifacts_writes_manifest_and_summary(tmp_path: Path):
     )
     (output_dir / "exploratory" / "bidirectional_poverty_crime").mkdir(parents=True)
     (output_dir / "exploratory" / "bidirectional_poverty_crime" / "bidirectional_summary.json").write_text(
-        json.dumps({"estimands": [{"label": "poverty_to_violent"}]}),
+        json.dumps(
+            {
+                "estimands": [
+                    {
+                        "label": "poverty_to_violent",
+                        "title": "Poverty -> Violent Crime",
+                        "treatment": "poverty_rate",
+                        "outcome": "violent_crime_rate",
+                        "baseline_fe": {"coefficient": 0.2, "p_value": 0.4},
+                        "dml": {"theta": 0.3, "p_value": 0.2, "panel_mode": "two_way_within"},
+                        "overlap": {"max_abs_smd": 0.9, "panel_mode": "two_way_within"},
+                        "headline": "Exploratory summary.",
+                    }
+                ]
+            }
+        ),
         encoding="utf-8",
     )
     (output_dir / "border").mkdir(parents=True)
@@ -165,5 +180,6 @@ def test_build_app_artifacts_writes_manifest_and_summary(tmp_path: Path):
     assert summary["research_lanes"]["primary"] == ["min_wage_violent"]
     assert summary["estimands"][0]["frontend"]["display_priority"] == "primary"
     assert summary["estimands"][0]["frontend"]["headline_eligible"] is True
+    assert summary["panel"]["crime_data_level"] == "county_fallback"
     assert credibility["lanes"][0]["slug"] == "min_wage_violent"
     assert any(source["name"] == "saipe" for source in summary["panel"]["available_sources"])
