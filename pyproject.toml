@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "povcrime"
 version = "0.1.0"
-description = "Starter scaffold for a Codex-built causal poverty-crime project"
+description = "County-level study of economic policy, poverty, and recorded crime"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -32,7 +32,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=8.2",
-  "ruff>=0.6"
+  "ruff>=0.17,<0.18"
 ]
 
 [tool.setuptools.packages.find]
