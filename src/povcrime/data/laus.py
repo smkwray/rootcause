@@ -172,7 +172,7 @@ class LAUSAdapter(BaseAdapter):
         """Parse a single BLS LAUS Excel file into a standardised frame."""
         try:
             raw = pd.read_excel(path, header=None, skiprows=2)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - skip any unreadable workbook
             logger.warning("Failed to read %s: %s", path, exc)
             return None
 

@@ -53,7 +53,7 @@ def _coverage_summary(panel: pd.DataFrame) -> list[dict[str, object]]:
             continue
         row: dict[str, object] = {
             "coverage_group": group_name,
-            "rows": int(len(sub)),
+            "rows": len(sub),
             "counties": int(sub["county_fips"].nunique()),
             "mean_source_share": float(sub["source_share"].mean()) if "source_share" in sub.columns else None,
         }
@@ -85,7 +85,7 @@ def _robustness_sensitivity(output_dir: Path) -> list[dict[str, object]]:
         rows.append(
             {
                 "label": label,
-                "n_specs": int(len(sub)),
+                "n_specs": len(sub),
                 "coef_range": coef_range,
                 "sign_flip": bool(len(signs - {0}) > 1),
                 "baseline_high_coverage_coef": _lookup_coef(sub, "baseline_high_coverage"),

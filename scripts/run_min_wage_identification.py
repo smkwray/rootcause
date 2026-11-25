@@ -162,7 +162,7 @@ def _add_permuted_treatment(
     out = df.copy()
     rng = np.random.default_rng(seed)
     out[output_col] = np.nan
-    for _, idx in out.groupby(time_col).groups.items():
+    for idx in out.groupby(time_col).groups.values():
         group_idx = pd.Index(idx)
         values = out.loc[group_idx, treatment_col].to_numpy(copy=True)
         out.loc[group_idx, output_col] = rng.permutation(values)
@@ -203,7 +203,7 @@ def _fit_event_study(
     return {
         "outcome_label": outcome_label,
         "spec": spec_name,
-        "n_coefs": int(len(coefs)),
+        "n_coefs": len(coefs),
         "n_pre_coefs": int(pretrend["n_pre_coefs"]),
         "pretrend_p_value": float(pretrend["p_value"]),
         "pretrend_pass": bool(pretrend["pass"]),

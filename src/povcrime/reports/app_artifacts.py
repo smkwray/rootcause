@@ -134,7 +134,7 @@ def _build_results_summary(
     return {
         "generated_date": date.today().isoformat(),
         "panel": {
-            "rows": int(len(panel)),
+            "rows": len(panel),
             "counties": int(panel["county_fips"].nunique()),
             "year_min": int(panel["year"].min()),
             "year_max": int(panel["year"].max()),
@@ -780,9 +780,7 @@ def _credibility_min_wage_redesign(
     p_placebo = _as_float(placebo["p_value"].iloc[0]) if not placebo.empty else None
     p_neg = _as_float(neg["p_value"].iloc[0]) if neg is not None and not neg.empty else None
     event_pass = bool(event["pretrend_pass"].iloc[0]) if event is not None and not event.empty else None
-    if p_placebo is not None and p_placebo < 0.05:
-        status = "fail"
-    elif p_neg is not None and p_neg < 0.05:
+    if (p_placebo is not None and p_placebo < 0.05) or (p_neg is not None and p_neg < 0.05):
         status = "fail"
     elif p_fd is not None and p_fd < 0.05 and event_pass is not False:
         status = "pass"

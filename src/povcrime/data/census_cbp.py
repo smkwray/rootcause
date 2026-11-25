@@ -63,7 +63,7 @@ class CensusCBPAdapter(BaseAdapter):
             resp = requests.get(_CBP_URL.format(year=year), params=params, timeout=120)
             try:
                 resp.raise_for_status()
-            except requests.HTTPError as exc:
+            except requests.HTTPError:
                 if resp.status_code == 404:
                     logger.warning(
                         "CBP %d is not published at %s yet, skipping.",
@@ -71,7 +71,7 @@ class CensusCBPAdapter(BaseAdapter):
                         resp.url,
                     )
                     continue
-                raise exc
+                raise
             out_path.write_text(resp.text, encoding="utf-8")
             logger.info("Saved CBP %d -> %s", year, out_path)
 

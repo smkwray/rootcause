@@ -37,7 +37,7 @@ def detrend_variables_within_entity(
 
     for col in columns:
         detrended = pd.Series(np.nan, index=out.index, dtype=float)
-        for _, idx in out.groupby(entity_col).groups.items():
+        for idx in out.groupby(entity_col).groups.values():
             sub_idx = pd.Index(idx)
             y = pd.to_numeric(out.loc[sub_idx, col], errors="coerce")
             x = years.loc[sub_idx]

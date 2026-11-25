@@ -45,8 +45,8 @@ from __future__ import annotations
 import json
 import logging
 import os
-from pathlib import Path
 import time
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -196,7 +196,7 @@ class FBICrimeAdapter(BaseAdapter):
         from_year = self._cfg.start_year
         to_year = self._cfg.end_year
 
-        for state_abbrev in _STATE_FIPS:
+        for state_abbrev, state_fips in _STATE_FIPS.items():
             for offense in _OFFENSE_TYPES:
                 out_path = self._raw_dir / f"{state_abbrev}_{offense}.json"
                 if out_path.exists():
@@ -249,7 +249,7 @@ class FBICrimeAdapter(BaseAdapter):
                 # Persist raw response with state/offense metadata.
                 wrapped = {
                     "state_abbrev": state_abbrev,
-                    "state_fips": _STATE_FIPS[state_abbrev],
+                    "state_fips": state_fips,
                     "offense_type": offense,
                     "from_year": from_year,
                     "to_year": to_year,

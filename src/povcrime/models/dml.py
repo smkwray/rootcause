@@ -18,7 +18,11 @@ from doubleml import DoubleMLData, DoubleMLPLR
 from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.model_selection import GroupKFold, KFold
 
-from povcrime.models.panel_ml import PanelMode, prepare_panel_ml_sample, validate_panel_mode
+from povcrime.models.panel_ml import (
+    PanelMode,
+    prepare_panel_ml_sample,
+    validate_panel_mode,
+)
 
 logger = logging.getLogger(__name__)
 

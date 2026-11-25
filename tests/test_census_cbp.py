@@ -37,7 +37,7 @@ def test_download_skips_unpublished_404_year(monkeypatch, tmp_path: Path):
     response.url = "https://api.census.gov/data/2024/cbp"
     response.raise_for_status.side_effect = requests.HTTPError(response=response)
 
-    def fake_get(url, params, timeout):  # noqa: ANN001
+    def fake_get(url, params, timeout):
         if "2024" in url:
             return response
         ok = Mock()

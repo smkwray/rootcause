@@ -213,8 +213,10 @@ class ReportBuilder:
 
         lines = [
             "## 5. Baseline Results (TWFE)\n",
-            "Two-way fixed effects (county + year) with clustered standard "
-            "errors at the state level.\n",
+            (
+                "Two-way fixed effects (county + year) with clustered standard "
+                "errors at the state level.\n"
+            ),
             "| Variable | Coefficient | Std Error | t-stat | p-value | 95% CI |",
             "|----------|-------------|-----------|--------|---------|--------|",
         ]
@@ -310,8 +312,10 @@ class ReportBuilder:
         """
         lines = [
             "## 7. ML-Enhanced Results (DML)\n",
-            "Double/Debiased Machine Learning with histogram gradient boosting for "
-            "nuisance-parameter estimation.\n",
+            (
+                "Double/Debiased Machine Learning with histogram gradient boosting for "
+                "nuisance-parameter estimation.\n"
+            ),
         ]
 
         theta = summary.get("theta", float("nan"))
@@ -359,8 +363,10 @@ class ReportBuilder:
         """
         lines = [
             "## 8. Heterogeneous Effects\n",
-            "Causal Forest (CausalForestDML) estimates of conditional "
-            "average treatment effects.\n",
+            (
+                "Causal Forest (CausalForestDML) estimates of conditional "
+                "average treatment effects.\n"
+            ),
         ]
 
         # ATE from the forest
@@ -478,18 +484,24 @@ class ReportBuilder:
         """
         if items is None:
             items = [
-                "Apply staggered difference-in-differences estimators "
-                "(Callaway-Sant'Anna, Sun-Abraham) to address TWFE bias.",
-                "Add a deeper overlap/support diagnostic layer for the ML "
-                "estimators.",
-                "Add instrumental-variable analysis for minimum wage using "
-                "federal wage floor changes.",
-                "Extend panel to include additional safety-net programmes "
-                "(EITC, Medicaid expansion).",
-                "Conduct spatial analysis to account for cross-county "
-                "spillovers in crime.",
-                "Incorporate cost-of-living adjustments for real minimum "
-                "wage comparisons.",
+                (
+                    "Apply staggered difference-in-differences estimators "
+                    "(Callaway-Sant'Anna, Sun-Abraham) to address TWFE bias."
+                ),
+                "Add a deeper overlap/support diagnostic layer for the ML estimators.",
+                (
+                    "Add instrumental-variable analysis for minimum wage using "
+                    "federal wage floor changes."
+                ),
+                (
+                    "Extend panel to include additional safety-net programmes "
+                    "(EITC, Medicaid expansion)."
+                ),
+                "Conduct spatial analysis to account for cross-county spillovers in crime.",
+                (
+                    "Incorporate cost-of-living adjustments for real minimum "
+                    "wage comparisons."
+                ),
             ]
 
         lines = ["## 11. Next Steps\n"]

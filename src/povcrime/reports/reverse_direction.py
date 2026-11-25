@@ -8,7 +8,6 @@ from pathlib import Path
 
 import pandas as pd
 
-
 _REVERSE_SPECS = [
     {"treatment": "violent_crime_rate", "outcome": "poverty_rate", "label": "violent_to_poverty"},
     {"treatment": "property_crime_rate", "outcome": "poverty_rate", "label": "property_to_poverty"},

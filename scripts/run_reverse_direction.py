@@ -119,15 +119,14 @@ def main(argv: list[str] | None = None) -> None:
         )
         result = model.fit()
         model.save_results(spec_dir)
-        coef = model.summary_table().loc[
-            lambda df: df["variable"] == lagged_treatment
-        ].iloc[0]
+        summary = model.summary_table()
+        coef = summary.loc[summary["variable"] == lagged_treatment].iloc[0]
         results.append(
             {
                 "label": label,
                 "outcome": outcome,
                 "treatment_variable": lagged_treatment,
-                "sample_rows": int(len(sub)),
+                "sample_rows": len(sub),
                 "n_obs_used": int(result.nobs),
                 "n_entities": int(result.entity_info["total"]),
                 "coefficient": float(coef["coefficient"]),

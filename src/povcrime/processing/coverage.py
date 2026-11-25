@@ -53,7 +53,7 @@ def compute_coverage_metrics(df: pd.DataFrame) -> pd.DataFrame:
     # Count how many sources have data for this row.
     total_sources = 0
     source_present = pd.Series(0, index=df.index, dtype=int)
-    for _source, cols in _SOURCE_INDICATORS.items():
+    for cols in _SOURCE_INDICATORS.values():
         # A source is "present" if all its indicator columns exist and
         # at least one is non-null.
         available = [c for c in cols if c in df.columns]

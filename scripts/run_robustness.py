@@ -201,7 +201,7 @@ def _run_spec(
         "outcome": outcome,
         "spec": spec["name"],
         "treatment_variable": treatment_col,
-        "sample_rows": int(len(sub)),
+        "sample_rows": len(sub),
         "n_obs_used": int(result.nobs),
         "n_entities": int(result.entity_info["total"]),
         "coefficient": float(coef["coefficient"]),

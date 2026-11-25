@@ -18,19 +18,19 @@ reporting-share fields are left missing.
 
 from __future__ import annotations
 
-from collections import defaultdict
 import gzip
 import json
 import logging
-from pathlib import Path
 import re
+from collections import defaultdict
+from pathlib import Path
 from typing import Any
 from zipfile import ZipFile
 
 import pandas as pd
 import requests
 
-from povcrime.data.fbi_crime import EXPECTED_COLUMNS, _STATE_FIPS
+from povcrime.data.fbi_crime import _STATE_FIPS, EXPECTED_COLUMNS
 
 logger = logging.getLogger(__name__)
 

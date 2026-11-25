@@ -192,7 +192,7 @@ _config: ProjectConfig | None = None
 
 def reset_config_cache() -> None:
     """Reset the cached default configuration."""
-    global _config  # noqa: PLW0603
+    global _config
     _config = None
 
 
@@ -247,7 +247,7 @@ def load_project_config(project_root: str | Path | None = None) -> ProjectConfig
 
 def get_config() -> ProjectConfig:
     """Return a cached :class:`ProjectConfig` for the default project root."""
-    global _config  # noqa: PLW0603
+    global _config
     if _config is None:
         _config = load_project_config()
     return _config

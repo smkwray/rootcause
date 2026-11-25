@@ -125,10 +125,12 @@ def build_data_quality_report(
             [
                 "",
                 "## Blocking Issue",
-                "- Crime outcomes are currently absent from the panel. "
-                "Baseline and DML estimation should remain blocked until a "
-                "county-level FBI fallback file or another county-level crime "
-                "source is loaded.",
+                (
+                    "- Crime outcomes are currently absent from the panel. "
+                    "Baseline and DML estimation should remain blocked until a "
+                    "county-level FBI fallback file or another county-level crime "
+                    "source is loaded."
+                ),
             ]
         )
 

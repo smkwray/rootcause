@@ -12,7 +12,11 @@ from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.metrics import r2_score
 from sklearn.model_selection import GroupKFold, KFold
 
-from povcrime.models.panel_ml import PanelMode, prepare_panel_ml_sample, validate_panel_mode
+from povcrime.models.panel_ml import (
+    PanelMode,
+    prepare_panel_ml_sample,
+    validate_panel_mode,
+)
 
 
 def build_continuous_treatment_support_diagnostics(
@@ -66,8 +70,8 @@ def build_continuous_treatment_support_diagnostics(
     residual_std = float(residual.std(ddof=0))
     summary: dict[str, float | int | str] = {
         "treatment": treatment,
-        "n_obs": int(len(sample)),
-        "n_controls": int(len(controls)),
+        "n_obs": len(sample),
+        "n_controls": len(controls),
         "treatment_min": float(y.min()),
         "treatment_p05": float(y.quantile(0.05)),
         "treatment_median": float(y.median()),
@@ -167,8 +171,8 @@ def _control_balance_by_treatment_tails(
                 "high_mean": high_mean,
                 "smd": float(smd),
                 "abs_smd": float(abs(smd)),
-                "group_low": int(len(low)),
-                "group_high": int(len(high)),
+                "group_low": len(low),
+                "group_high": len(high),
             }
         )
 

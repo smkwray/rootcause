@@ -7,7 +7,6 @@ import logging
 from povcrime.config import get_config
 from povcrime.data.fbi_reta_master import build_county_fallback
 
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",

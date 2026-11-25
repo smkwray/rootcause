@@ -98,7 +98,7 @@ def main(argv: list[str] | None = None) -> None:
                     "label": lane.slug,
                     "outcome": lane.outcome,
                     "event_col": lane.event_col,
-                    "n_coefs": int(len(model.coef_table())),
+                    "n_coefs": len(model.coef_table()),
                     "n_pre_coefs": int(pretrend["n_pre_coefs"]),
                     "pretrend_p_value": float(pretrend["p_value"]),
                     "pretrend_pass": bool(pretrend["pass"]),

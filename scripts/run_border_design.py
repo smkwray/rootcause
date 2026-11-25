@@ -69,7 +69,7 @@ def _fit_spec(
     coef = extract_treatment_row(model.summary_table(), treatment=treatment_col)
     return {
         "spec": spec_name,
-        "sample_rows": int(len(sub)),
+        "sample_rows": len(sub),
         "n_obs_used": int(result.nobs),
         "n_entities": int(result.entity_info["total"]),
         "coefficient": float(coef["coefficient"]),

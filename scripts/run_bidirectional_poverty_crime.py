@@ -18,7 +18,10 @@ from povcrime.models.reverse_direction import (
     lag_treatment_within_county,
     lead_treatment_within_county,
 )
-from povcrime.models.robustness import detrend_variables_within_entity, extract_treatment_row
+from povcrime.models.robustness import (
+    detrend_variables_within_entity,
+    extract_treatment_row,
+)
 from povcrime.utils import ensure_dirs
 
 logging.basicConfig(
@@ -141,7 +144,7 @@ def _run_baseline_fe(
     coef = extract_treatment_row(model.summary_table(), treatment=treatment_col)
     return {
         "treatment_variable": treatment_col,
-        "sample_rows": int(len(sub)),
+        "sample_rows": len(sub),
         "n_obs_used": int(result.nobs),
         "n_entities": int(result.entity_info["total"]),
         "coefficient": float(coef["coefficient"]),
@@ -195,7 +198,7 @@ def _run_robustness(
                 "title": lane.title,
                 "spec": robustness["name"],
                 "treatment_variable": treatment_col,
-                "sample_rows": int(len(sub)),
+                "sample_rows": len(sub),
                 "n_obs_used": int(result.nobs),
                 "n_entities": int(result.entity_info["total"]),
                 "coefficient": float(coef["coefficient"]),
