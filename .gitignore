@@ -46,3 +46,4 @@ docs/treatment_definitions.md
 
 # Local app / editor files
 .vscode/
+.private-denylist

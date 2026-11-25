@@ -1,158 +1,83 @@
-# Rootcause
+# rootcause
 
-[![CI](https://github.com/smkwray/rootcause/actions/workflows/ci.yml/badge.svg)](https://github.com/smkwray/rootcause/actions/workflows/ci.yml)
+**[View the interactive results site](https://smkwray.github.io/rootcause/)**
 
-**Economic Policy, Poverty, and Crime in U.S. Counties, 2000--2024**
+`rootcause` is a county-level study of economic policy, poverty, and recorded crime in the United States, covering 3,158 counties from 2000 to 2024 (78,529 county-years). It tests whether changes in the minimum wage, state Earned Income Tax Credits (EITC), broad-based categorical eligibility (BBCE) for the Supplemental Nutrition Assistance Program (SNAP), and Temporary Assistance for Needy Families (TANF) benefit levels affect recorded crime, and whether poverty and crime feed each other.
 
-A county-level empirical study examining the relationships between economic policy, poverty, and recorded crime. Tests whether changes in minimum wage, state earned income tax credits (EITC), SNAP eligibility rules, and TANF benefit levels affect crime rates -- and whether poverty and crime reinforce each other.
+No policy shows a consistent effect on crime across estimators, and tighter designs weaken the broad-sample estimates. Neither poverty-to-crime nor crime-to-poverty passes the full set of credibility checks. Every analysis currently carries a "caution" verdict, so none of the results supports a causal claim.
 
-**[View the results site](https://smkwray.github.io/rootcause/)**
+## Headline findings
 
----
+Policy and crime:
 
-## What This Project Asks
+- Minimum wage, the primary analysis, gives mixed signals. Two-way fixed effects (TWFE) estimates are positive and not significant for violent and property crime. Double/debiased machine learning (DML) estimates are marginally significant but negative for property crime and positive for violent crime. Border-county comparisons confirm neither direction.
+- State EITC results depend on the estimator. Pre-trends pass, TWFE is weak, and DML is marginal for violent crime; trimming to the region of common support shrinks the violent-crime estimate.
+- SNAP BBCE fails the pre-trend test and TANF has poor covariate overlap, so both remain exploratory.
 
-Does economic policy affect crime? Does poverty cause crime -- or does crime deepen poverty? This project tests both directions using 25 years of county-level U.S. data and multiple causal inference methods. Policy-to-crime lanes test whether minimum wage, EITC, SNAP, and TANF changes affect recorded crime. A separate bidirectional analysis places poverty-to-crime and crime-to-poverty on equal methodological footing. Each lane is evaluated through a systematic credibility framework that includes conventional fixed effects, machine-learning estimators, border-county designs, staggered-adoption checks, and falsification tests.
+Poverty and crime, estimated both ways with the same panel and methods:
 
-## Headline Findings
+- Poverty to crime: DML finds significant positive associations with violent and property crime, and fixed effects find one for property crime only. A significant placebo lead for property crime points to shared trends rather than causation, and covariate balance is poor (maximum standardized mean difference above 2).
+- Crime to poverty: DML finds small, significant positive associations for both crime types, and fixed effects find one for property crime only. The effects are near zero in practical terms, and the property-crime placebo lead is also significant.
 
-### Policy and Crime
+## Method and credibility checks
 
-- **No single policy lever shows a clear, consistent causal effect on recorded crime** across all estimation methods.
-- **Minimum wage** is the primary research lane but shows mixed signals: TWFE is positive and insignificant for both crime types; DML is marginally significant but switches sign for property crime (negative) vs violent crime (positive). Border-county designs do not confirm either direction.
-- **State EITC** results are method-sensitive. Pre-trends pass, but TWFE is weak while DML is marginal for violent crime. Support trimming attenuates the signal.
-- **SNAP BBCE** and **TANF** lanes remain exploratory due to failed pre-trends and poor covariate overlap, respectively.
-- **Tighter identification designs** (border-county comparisons, staggered adoption, support trimming) tend to weaken rather than strengthen initial broad-sample estimates.
+Each analysis is estimated with TWFE (county and year fixed effects, with event-study pre-trend tests) and with cross-fitted DML using gradient-boosting nuisance models, county-grouped sample splits, and a county-and-year within transform. Each then faces the same checks:
 
-### Poverty and Crime: Both Directions
+| Check | What it tests |
+|---|---|
+| Event-study pre-trends | Whether treated and comparison counties trended alike before treatment |
+| Covariate overlap | Balance between treated and comparison counties |
+| Support trimming | Sensitivity to dropping counties with poor propensity-score overlap |
+| Border-county pairs | Whether adjacent cross-state counties reproduce the national estimate |
+| Negative-control outcomes | Whether the policy also "moves" slow demographic outcomes it should not affect |
+| Staggered-adoption ATT | Average treatment effect on the treated, using not-yet-treated counties as controls |
 
-The project tests whether poverty causes crime *and* whether crime deepens poverty, using the same panel, estimators, and diagnostics for both directions.
+Robustness runs add population weighting, county detrending, strict coverage filters, and placebo leads. Analysis definitions live in [`configs/project.yaml`](configs/project.yaml).
 
-- **Poverty to crime:** DML finds significant positive associations for both violent and property crime. FE is mixed (significant for property, not violent). However, the poverty-to-property placebo lead is also significant, raising concern about trending rather than causation. Covariate imbalance is high (max SMD > 2).
-- **Crime to poverty:** DML finds small but statistically significant positive associations in both directions. FE is significant only for property-to-poverty. The coefficients are near zero in practical terms (crime rate per 100,000 moving poverty rate in percentage points). Placebo-lead concerns apply to property crime as well.
-- **Neither direction passes the full credibility battery.** Both suffer from high covariate imbalance and/or significant placebo leads, preventing causal claims.
+## Data sources
 
-## Data Sources
-
-All data comes from publicly available U.S. federal sources:
+All data are public. Coverage is the share of county-year rows with data from that source.
 
 | Source | Variables | Coverage |
-|--------|-----------|----------|
-| Census SAIPE | Poverty rate, median household income, population | 100% |
-| BLS Local Area Unemployment Statistics | Unemployment rate | 99.7% |
+|---|---|---|
+| Census Small Area Income and Poverty Estimates (SAIPE) | Poverty rate, median household income, population | 100% |
+| BLS Local Area Unemployment Statistics (LAUS) | Unemployment rate | 99.7% |
 | BEA Regional Economic Accounts | Per-capita personal income | 98.3% |
 | Census County Business Patterns | Establishments, employment, payroll | 95.9% |
-| HUD Fair Market Rents | Rent levels by bedroom count | 99.5% |
-| FHFA House Price Index | County-level house price indices | 86.5% |
-| American Community Survey 5-Year | Race/ethnicity, age, education demographics | 64.0% |
-| UKCPR Welfare Rules Database | State EITC rates, TANF benefit levels | 96.0% |
-| FBI Uniform Crime Reporting | Violent and property crime counts and rates | 96.4% |
-| State Policy Variables | Effective minimum wage, SNAP BBCE status | 100% |
+| HUD Fair Market Rents | Rent by bedroom count | 99.5% |
+| FHFA House Price Index | County house price indices | 86.5% |
+| American Community Survey (ACS) 5-year | Race and ethnicity, age, education | 64.0% |
+| University of Kentucky Center for Poverty Research (UKCPR) Welfare Rules Database | State EITC rates, TANF benefit levels | 96.0% |
+| FBI Uniform Crime Reporting (UCR) Program | Violent and property crime counts and rates | 96.4% |
+| State policy variables | Effective minimum wage, SNAP BBCE status | 100% |
 
-The panel contains **78,529 county-year observations** across **3,158 counties** from **2000 to 2024**.
+API keys are optional. To use them, copy `.env.example` to `.env` and fill in the keys you have.
 
-## Methods
+## Reproduce
 
-The analysis applies multiple estimation strategies to each policy lane:
+Requires Python 3.11 or later. The package is named `povcrime`.
 
-- **Two-Way Fixed Effects (TWFE):** County and year fixed effects with event-study pre-trend tests.
-- **Double/Debiased Machine Learning (DML):** Cross-fitted histogram gradient boosting nuisance models partial out high-dimensional confounders before estimating treatment effects. County-year analyses use county-grouped sample splitting and a two-way within transform over county and year before nuisance fitting, so the same county does not appear in both train and test folds and the ML stage is panel-aware by default.
-- **Border-County Design:** Adjacent cross-state county pairs compared within pairs over time.
-- **Staggered-Adoption Estimator:** Stacked not-yet-treated approach to avoid heterogeneous timing bias.
-- **Robustness:** Population weighting, county detrending, strict coverage filters, placebo leads, support-trimmed samples.
-- **Falsification:** Negative-control outcomes (slow-moving demographics) test for residual confounding.
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+make smoke     # fixture-based tests, no network
+make full      # download, build the panel, QA, baseline, DML, overlap, report, site data
+```
 
-The authoritative lane registry, panel metadata, titles, tiers, treatments, and outcomes live in [`configs/project.yaml`](configs/project.yaml). That now covers both the main policy-to-crime lanes and the exploratory bidirectional poverty/crime lanes. Backend scripts and report builders read those definitions through the typed loader in [`src/povcrime/config.py`](src/povcrime/config.py).
+`make full` runs the core chain. The other checks have their own targets: `make robustness`, `make border`, `make support-trim`, `make falsification`, `make min-wage-id`, `make bidirectional`, `make crime-validation`, and `python scripts/run_staggered_att.py`. Run `make report app public-data` afterwards to include their results in the report and site. To preview the site locally, run `python3 -m http.server --directory docs` and open http://localhost:8000.
 
-## Credibility Framework
-
-Every policy lane is evaluated against a battery of checks:
-
-| Check | What It Tests |
-|-------|---------------|
-| Event-study pre-trends | Whether parallel trends hold before treatment |
-| Covariate overlap | Balance between treated and control groups |
-| Support trimming | Sensitivity to propensity-score overlap |
-| Border-county design | Whether local comparisons reproduce national estimates |
-| Negative-control outcomes | Whether the policy also "affects" outcomes it shouldn't |
-| Staggered-adoption ATT | Robustness to heterogeneous treatment timing |
-
-Currently, **no policy lane passes all checks**. Every lane carries a "caution" verdict.
+Outputs are written to `outputs/` (not committed). `make public-data` copies the site summary to `docs/assets/data/site_data.json` with local file paths removed.
 
 ## Limitations
 
-This study has fundamental constraints that no amount of robustness checking can fully resolve:
+- FBI UCR is the only crime source, so changes in reporting or agency participation can look like changes in crime.
+- DML assumes no unobserved confounding, but state policy choices track unmeasured political and institutional factors; the negative-control failures suggest slow-moving trends remain.
+- ACS controls are pooled 5-year estimates, unavailable before 2005, and are loose year-by-year controls.
+- The staggered-adoption estimator is not interpretable for the minimum wage, and TWFE estimates may carry bias from staggered timing that is not decomposed.
+- TWFE and DML disagree on sign, size, and significance for the same analysis.
+- The border design has only 798 adjacent cross-state county pairs, too few to detect moderate effects.
 
-- **No external crime benchmark.** The FBI UCR program is the sole crime data source. There is no second county-year crime measure (e.g., victimization surveys, 911 call data) to validate that patterns reflect actual crime rather than reporting or participation changes. Coverage-sensitivity checks are used instead, but they cannot rule out measurement-driven results.
-- **Unconfoundedness is assumed, not tested.** DML removes observable confounders via machine learning, but state-level policy choices correlate with unmeasured characteristics (political environment, institutional capacity, cultural factors) that also affect crime. Fixed effects absorb time-invariant county traits and common year shocks, but slow-moving unobserved trends remain a concern — as the negative-control tests confirm.
-- **ACS controls are pooled 5-year estimates.** Demographic variables (race, age, education) come from ACS 5-year pooled estimates designed for small-area reliability, not precise annual measurement. Using them as year-by-year DML confounders is methodologically loose, and they are unavailable before 2005.
-- **Staggered treatment timing is not fully resolved.** The staggered-adoption estimator returns "not interpretable" for minimum wage, meaning pre-period coefficients are absorbed. Standard TWFE estimates may carry Goodman-Bacon heterogeneous-timing bias that is acknowledged but not decomposed.
-- **Crime data reflects recorded crime, not actual crime.** FBI UCR reporting practices vary across agencies and over time. Changes in reporting can mimic changes in crime.
-- **Results are sensitive to estimator choice.** TWFE and DML disagree on sign, magnitude, and significance for the same policy lane. This is transparently reported but limits the strength of any conclusion.
-- **Border design is underpowered.** Only 798 cross-state adjacent county pairs are available, limiting statistical power for detecting moderate effects.
+## License
 
-## Backend Quickstart
-
-Install the project and development tools:
-
-```bash
-python -m pip install -e .[dev]
-```
-
-Run a fast local verification pass:
-
-```bash
-make smoke
-```
-
-`make smoke` includes a fixture-backed script smoke test that runs the real `build_panel -> build_qa_report -> build_app_artifacts -> build_final_report -> refresh_public_data` chain against tiny local fixtures with no network access.
-
-Run the standard backend pipeline:
-
-```bash
-make full
-```
-
-If you want the steps individually:
-
-```bash
-make download
-make build
-make qa
-make baseline
-make dml
-make overlap
-make report
-make app
-make public-data
-```
-
-Notes:
-
-- `make download` now includes the normal FBI county-fallback path when county-level crime needs to be constructed from the raw FBI files.
-- `make build` requires county-level FBI crime by default for the county-year panel. Use `python scripts/build_panel.py --allow-missing-county-crime` only for debugging or partial builds.
-- `make fbi-county-fallback` is available if you want to build the county-level FBI fallback explicitly.
-
-## Viewing the Site
-
-The static results site is published at **[smkwray.github.io/rootcause](https://smkwray.github.io/rootcause/)**.
-
-To view locally:
-
-```bash
-cd docs
-python3 -m http.server
-# Open http://localhost:8000
-```
-
-## Refreshing the Public Data
-
-The site reads from a sanitized data snapshot at `docs/assets/data/site_data.json`. To update it after re-running the backend pipeline:
-
-```bash
-make public-data
-```
-
-This reads `outputs/app/results_summary.json` and `outputs/app/credibility_summary.json`, strips internal file paths, and writes the public snapshot.
-
----
+MIT. See [LICENSE](LICENSE).
